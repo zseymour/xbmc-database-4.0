@@ -208,7 +208,7 @@ int SqliteDatabase::connect(bool create) {
   if (host.empty() || db.empty())
     return DB_CONNECTION_NONE;
 
-  //CLog::Log(LOGDEBUG, "Connecting to sqlite:%s:%s", host.c_str(), db.c_str());
+  CLog::Log(LOGDEBUG, "Connecting to sqlite:%s:%s", host.c_str(), db.c_str());
 
   CStdString db_fullpath = host + "/" + db;
 
@@ -228,6 +228,8 @@ int SqliteDatabase::connect(bool create) {
       }
       active = true;
       return DB_CONNECTION_OK;
+    } else {
+    	CLog::Log(LOGWARNING,"Can't open database: %s\n", sqlite3_errmsg(conn));
     }
 
     return DB_CONNECTION_NONE;

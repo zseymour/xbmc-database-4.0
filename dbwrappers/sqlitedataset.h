@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include "dataset.h"
+#include "../utils/log.h"
 #include <sqlite3.h>
 
 namespace dbiplus {
