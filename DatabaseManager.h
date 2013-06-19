@@ -47,7 +47,7 @@ public:
   /*! \brief Initalize the database manager
    Checks that all databases are up to date, otherwise updates them.
    */
-  void Initialize(bool addonsOnly = false);
+  void Initialize(bool addonsOnly, DatabaseSettings *settings);
 
   /*! \brief Deinitialize the database manager
    */

@@ -19,6 +19,8 @@
  */
 
 #include "DatabaseManager.h"
+#include "ObjectDatabase.h"
+#include "utils/log.h"
 
 
 
@@ -38,37 +40,38 @@ CDatabaseManager::~CDatabaseManager()
 {
 }
 
-void CDatabaseManager::Initialize(bool addonsOnly)
+void CDatabaseManager::Initialize(bool addonsOnly, DatabaseSettings *settings)
 {
   Deinitialize();
-//  if (addonsOnly)
-//    return;
-//  CLog::Log(LOGDEBUG, "%s, updating databases...", __FUNCTION__);
+  if (addonsOnly)
+    return;
+  CLog::Log(LOGDEBUG, "%s, updating databases...", __FUNCTION__);
 
   // NOTE: Order here is important. In particular, CTextureDatabase has to be updated
   //       before CVideoDatabase.
+  {CObjectDatabase db; UpdateDatabase(db, settings);  }
 //  { CViewDatabase db; UpdateDatabase(db); }
 //  { CTextureDatabase db; UpdateDatabase(db); }
 //  { CMusicDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseMusic); }
 //  { CVideoDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseVideo); }
 //  { CPVRDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseTV); }
 //  { CEpgDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseEpg); }
-//  CLog::Log(LOGDEBUG, "%s, updating databases... DONE", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s, updating databases... DONE", __FUNCTION__);
 }
 
 void CDatabaseManager::Deinitialize()
 {
 //  CSingleLock lock(m_section);
-//  m_dbStatus.clear();
+  m_dbStatus.clear();
 }
 
 bool CDatabaseManager::CanOpen(const std::string &name)
 {
 //  CSingleLock lock(m_section);
-//  map<string, DB_STATUS>::const_iterator i = m_dbStatus.find(name);
-//  if (i != m_dbStatus.end())
-//    return i->second == DB_READY;
-//  return false; // db isn't even attempted to update yet
+ map<string, DB_STATUS>::const_iterator i = m_dbStatus.find(name);
+  if (i != m_dbStatus.end())
+    return i->second == DB_READY;
+  return false; // db isn't even attempted to update yet
 }
 
 void CDatabaseManager::UpdateDatabase(CDatabase &db, DatabaseSettings *settings)
@@ -84,5 +87,5 @@ void CDatabaseManager::UpdateDatabase(CDatabase &db, DatabaseSettings *settings)
 void CDatabaseManager::UpdateStatus(const std::string &name, DB_STATUS status)
 {
 //  CSingleLock lock(m_section);
-//  m_dbStatus[name] = status;
+   m_dbStatus[name] = status;
 }
