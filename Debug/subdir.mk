@@ -5,14 +5,17 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../DatabaseManager.cpp \
+../ObjectDatabase.cpp \
 ../test.cpp 
 
 OBJS += \
 ./DatabaseManager.o \
+./ObjectDatabase.o \
 ./test.o 
 
 CPP_DEPS += \
 ./DatabaseManager.d \
+./ObjectDatabase.d \
 ./test.d 
 
 

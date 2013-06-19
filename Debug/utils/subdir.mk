@@ -7,7 +7,8 @@ CPP_SRCS += \
 ../utils/Crc32.cpp \
 ../utils/RegExp.cpp \
 ../utils/StringUtils.cpp \
-../utils/Variant.cpp 
+../utils/Variant.cpp \
+../utils/log.cpp 
 
 C_SRCS += \
 ../utils/fstrcmp.c 
@@ -17,7 +18,8 @@ OBJS += \
 ./utils/RegExp.o \
 ./utils/StringUtils.o \
 ./utils/Variant.o \
-./utils/fstrcmp.o 
+./utils/fstrcmp.o \
+./utils/log.o 
 
 C_DEPS += \
 ./utils/fstrcmp.d 
@@ -26,7 +28,8 @@ CPP_DEPS += \
 ./utils/Crc32.d \
 ./utils/RegExp.d \
 ./utils/StringUtils.d \
-./utils/Variant.d 
+./utils/Variant.d \
+./utils/log.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
