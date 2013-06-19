@@ -22,6 +22,7 @@
 #include "../utils/Crc32.h"
 #include "sqlitedataset.h"
 #include "../DatabaseManager.h"
+#include "../utils/log.h"
 
 #ifdef HAS_MYSQL
 #include "mysqldataset.h"
@@ -178,7 +179,7 @@ std::string CDatabase::GetSingleValue(const std::string &query, std::auto_ptr<Da
   }
   catch(...)
   {
-    //CLog::Log(LOGERROR, "%s - failed on query '%s'", __FUNCTION__, query.c_str());
+    CLog::Log(LOGERROR, "%s - failed on query '%s'", __FUNCTION__, query.c_str());
   }
   return ret;
 }
@@ -227,8 +228,8 @@ bool CDatabase::ExecuteQuery(const CStdString &strQuery)
   }
   catch (...)
   {
-   // CLog::Log(LOGERROR, "%s - failed to execute query '%s'",
-   //     __FUNCTION__, strQuery.c_str());
+   CLog::Log(LOGERROR, "%s - failed to execute query '%s'",
+        __FUNCTION__, strQuery.c_str());
   }
 
   return bReturn;
@@ -249,8 +250,8 @@ bool CDatabase::ResultQuery(const CStdString &strQuery)
   }
   catch (...)
   {
-    //CLog::Log(LOGERROR, "%s - failed to execute query '%s'",
-    //    __FUNCTION__, strQuery.c_str());
+    CLog::Log(LOGERROR, "%s - failed to execute query '%s'",
+        __FUNCTION__, strQuery.c_str());
   }
 
   return bReturn;
@@ -290,8 +291,8 @@ bool CDatabase::CommitInsertQueries()
     catch(...)
     {
       bReturn = false;
-      //CLog::Log(LOGERROR, "%s - failed to execute queries",
-      //    __FUNCTION__);
+      CLog::Log(LOGERROR, "%s - failed to execute queries",
+          __FUNCTION__);
     }
   }
 
@@ -371,10 +372,11 @@ bool CDatabase::Update(const DatabaseSettings &settings)
 
     if (Connect(dbName, dbSettings, false))
     {
+      CLog::Log(LOGNOTICE, "Database exists!");
       // Database exists, take a copy for our current version (if needed) and reopen that one
       if (version < GetMinVersion())
       {
-        //CLog::Log(LOGNOTICE, "Old database found - updating from version %i to %i", version, GetMinVersion());
+        CLog::Log(LOGNOTICE, "Old database found - updating from version %i to %i", version, GetMinVersion());
 
         bool copy_fail = false;
 
@@ -384,7 +386,7 @@ bool CDatabase::Update(const DatabaseSettings &settings)
         }
         catch(...)
         {
-          //CLog::Log(LOGERROR, "Unable to copy old database %s to new version %s", dbName.c_str(), latestDb.c_str());
+          CLog::Log(LOGERROR, "Unable to copy old database %s to new version %s", dbName.c_str(), latestDb.c_str());
           copy_fail = true;
         }
 
@@ -395,7 +397,7 @@ bool CDatabase::Update(const DatabaseSettings &settings)
 
         if (!Connect(latestDb, dbSettings, false))
         {
-          //CLog::Log(LOGERROR, "Unable to open freshly copied database %s", latestDb.c_str());
+          CLog::Log(LOGERROR, "Unable to open freshly copied database %s", latestDb.c_str());
           return false;
         }
       }
@@ -417,7 +419,7 @@ bool CDatabase::Update(const DatabaseSettings &settings)
 
   // failed to update or open the database
   Close();
-  //CLog::Log(LOGERROR, "Unable to create new database");
+  CLog::Log(LOGERROR, "Unable to create new database");
   return false;
 }
 
@@ -436,7 +438,7 @@ bool CDatabase::Connect(const CStdString &dbName, const DatabaseSettings &dbSett
 #endif
   else
   {
-    //CLog::Log(LOGERROR, "Unable to determine database type: %s", dbSettings.type.c_str());
+    CLog::Log(LOGERROR, "Unable to determine database type: %s", dbSettings.type.c_str());
     return false;
   }
 
@@ -479,7 +481,7 @@ bool CDatabase::Connect(const CStdString &dbName, const DatabaseSettings &dbSett
         //  Also set the memory cache size to 16k
         m_pDS->exec("PRAGMA default_cache_size=4096\n");
       }
-      CreateTables();
+      //CreateTables();
     }
 
     // sqlite3 post connection operations
@@ -492,7 +494,7 @@ bool CDatabase::Connect(const CStdString &dbName, const DatabaseSettings &dbSett
   }
   catch (DbErrors &error)
   {
-    //CLog::Log(LOGERROR, "%s failed with '%s'", __FUNCTION__, error.getMsg());
+    CLog::Log(LOGERROR, "%s failed with '%s'", __FUNCTION__, error.getMsg());
     m_openCount = 1; // set to open so we can execute Close()
     Close();
     return false;
@@ -504,9 +506,9 @@ bool CDatabase::Connect(const CStdString &dbName, const DatabaseSettings &dbSett
 
 int CDatabase::GetDBVersion()
 {
-  m_pDS->query("SELECT idVersion FROM version\n");
+  m_pDS->query("SELECT contentRevision FROM version\n");
   if (m_pDS->num_rows() > 0)
-    return m_pDS->fv("idVersion").get_asInt();
+    return m_pDS->fv("contentRevision").get_asInt();
   return 0;
 }
 
@@ -515,36 +517,36 @@ bool CDatabase::UpdateVersion(const CStdString &dbName)
   int version = GetDBVersion();
   if (version < GetMinVersion())
   {
-    //CLog::Log(LOGNOTICE, "Attempting to update the database %s from version %i to %i", dbName.c_str(), version, GetMinVersion());
+    CLog::Log(LOGNOTICE, "Attempting to update the database %s from version %i to %i", dbName.c_str(), version, GetMinVersion());
     bool success = false;
     BeginTransaction();
     try
     {
-      success = UpdateOldVersion(version);
+      //success = UpdateOldVersion(version);
       if (success)
         success = UpdateVersionNumber();
     }
     catch (...)
     {
-      //CLog::Log(LOGERROR, "Exception updating database %s from version %i to %i", dbName.c_str(), version, GetMinVersion());
+      CLog::Log(LOGERROR, "Exception updating database %s from version %i to %i", dbName.c_str(), version, GetMinVersion());
       success = false;
     }
     if (!success)
     {
-      //CLog::Log(LOGERROR, "Error updating database %s from version %i to %i", dbName.c_str(), version, GetMinVersion());
+      CLog::Log(LOGERROR, "Error updating database %s from version %i to %i", dbName.c_str(), version, GetMinVersion());
       RollbackTransaction();
       return false;
     }
     CommitTransaction();
-    //CLog::Log(LOGINFO, "Update to version %i successful", GetMinVersion());
+    CLog::Log(LOGINFO, "Update to version %i successful", GetMinVersion());
   }
   else if (version > GetMinVersion())
   {
-    //CLog::Log(LOGERROR, "Can't open the database %s as it is a NEWER version than what we were expecting?", dbName.c_str());
+    CLog::Log(LOGERROR, "Can't open the database %s as it is a NEWER version than what we were expecting?", dbName.c_str());
     return false;
   }
   else 
-    //CLog::Log(LOGNOTICE, "Running database version %s", dbName.c_str());
+    CLog::Log(LOGNOTICE, "Running database version %s", dbName.c_str());
   return true;
 }
 
@@ -585,14 +587,14 @@ bool CDatabase::Compress(bool bForce /* =true */)
     if (NULL == m_pDS.get()) return false;
     if (!bForce)
     {
-      m_pDS->query("select iCompressCount from version");
+      m_pDS->query("select contentCompressCount from version");
       if (!m_pDS->eof())
       {
         int iCount = m_pDS->fv(0).get_asInt();
         if (iCount > MAX_COMPRESS_COUNT)
           iCount = -1;
         m_pDS->close();
-        CStdString strSQL=PrepareSQL("update version set iCompressCount=%i\n",++iCount);
+        CStdString strSQL=PrepareSQL("update version set contentCompressCount=%i\n",++iCount);
         m_pDS->exec(strSQL.c_str());
         if (iCount != 0)
           return true;
@@ -604,7 +606,7 @@ bool CDatabase::Compress(bool bForce /* =true */)
   }
   catch (...)
   {
-    //CLog::Log(LOGERROR, "%s - Compressing the database failed", __FUNCTION__);
+    CLog::Log(LOGERROR, "%s - Compressing the database failed", __FUNCTION__);
     return false;
   }
   return true;
@@ -624,7 +626,7 @@ void CDatabase::BeginTransaction()
   }
   catch (...)
   {
-    //CLog::Log(LOGERROR, "database:begintransaction failed");
+    CLog::Log(LOGERROR, "database:begintransaction failed");
   }
 }
 
@@ -637,7 +639,7 @@ bool CDatabase::CommitTransaction()
   }
   catch (...)
   {
-    //CLog::Log(LOGERROR, "database:committransaction failed");
+    CLog::Log(LOGERROR, "database:committransaction failed");
     return false;
   }
   return true;
@@ -652,7 +654,7 @@ void CDatabase::RollbackTransaction()
   }
   catch (...)
   {
-    //CLog::Log(LOGERROR, "database:rollbacktransaction failed");
+    CLog::Log(LOGERROR, "database:rollbacktransaction failed");
   }
 }
 
@@ -665,9 +667,9 @@ bool CDatabase::InTransaction()
 bool CDatabase::CreateTables()
 {
 
-    //CLog::Log(LOGINFO, "creating version table");
-    m_pDS->exec("CREATE TABLE version (idVersion integer, iCompressCount integer)\n");
-    CStdString strSQL=PrepareSQL("INSERT INTO version (idVersion,iCompressCount) values(%i,0)\n", GetMinVersion());
+    CLog::Log(LOGINFO, "creating version table");
+    m_pDS->exec("CREATE TABLE version (contentRevision INTEGER  NULL  DEFAULT NULL ,contentCompressCount  INTEGER  NULL  DEFAULT NULL)\n");
+    CStdString strSQL=PrepareSQL("INSERT INTO version (contentRevision,contentCompressCount) values(%i,0)\n", GetMinVersion());
     m_pDS->exec(strSQL.c_str());
 
     return true;
@@ -675,8 +677,8 @@ bool CDatabase::CreateTables()
 
 bool CDatabase::UpdateVersionNumber()
 {
-//  //CStdString strSQL=PrepareSQL("UPDATE version SET idVersion=%i\n", GetMinVersion());
-//  m_pDS->exec(strSQL.c_str());
+  CStdString strSQL=PrepareSQL("UPDATE version SET contentRevision=%i\n", GetMinVersion());
+  m_pDS->exec(strSQL.c_str());
   return true;
 }
 
