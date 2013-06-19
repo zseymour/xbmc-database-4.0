@@ -68,6 +68,7 @@ public:
   static void JoinString(const CStdStringArray &strings, const CStdString& delimiter, CStdString& result);
   static CStdString JoinString(const CStdStringArray &strings, const CStdString& delimiter);
   static CStdString Join(const std::vector<std::string> &strings, const CStdString& delimiter);
+  static CStdString Join(const std::vector<int> &ints, const CStdString& delimiter);
   static int SplitString(const CStdString& input, const CStdString& delimiter, CStdStringArray &results, unsigned int iMaxStrings = 0);
   static CStdStringArray SplitString(const CStdString& input, const CStdString& delimiter, unsigned int iMaxStrings = 0);
   static std::vector<std::string> Split(const CStdString& input, const CStdString& delimiter, unsigned int iMaxStrings = 0);

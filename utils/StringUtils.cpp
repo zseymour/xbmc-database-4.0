@@ -241,6 +241,15 @@ CStdString StringUtils::Join(const vector<string> &strings, const CStdString& de
   return JoinString(strArray, delimiter);
 }
 
+CStdString StringUtils::Join(const vector<int> &ints, const CStdString& delimiter)
+{
+  CStdStringArray strArray;
+  for (unsigned int index = 0; index < ints.size(); index++)
+    strArray.push_back(Format("%d",ints.at(index)));
+
+  return JoinString(strArray, delimiter);
+}
+
 // Splits the string input into pieces delimited by delimiter.
 // if 2 delimiters are in a row, it will include the empty string between them.
 // added MaxStrings parameter to restrict the number of returned substrings (like perl and python)
