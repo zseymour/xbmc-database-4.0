@@ -29,7 +29,8 @@ int main()
 	if(db.Open())
 	{
 		vector<int> ids;
-		if(db.GetAllAttributesForObjectType(16,ids))
+		int id = db.GetObjectTypeID("movie");
+		if(db.GetAllArtworkTypesForObjectType(id,ids))
 		{
 //			for(vector<int>::iterator it = ids.begin(); it != ids.end(); ++it)
 //			{
