@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <set>
+#include <map>
 
 namespace dbiplus
 {
@@ -22,8 +23,31 @@ namespace dbiplus
   typedef std::vector<field_value> sql_record;
 }
 
+typedef enum {
+	STRING_ATTRIBUTE = 0,
+	NUMBER_ATTRIBUTE = 1,
+	BLOB_ATTRIBUTE = 2
+} ATTRIBUTE_DATA_TYPE;
+
 class CObjectDatabase: public CDatabase {
 public:
+	class CAttributeType
+	{
+	public:
+		int idAttributeType;
+		int idObjectType;
+		CStdString stub;
+		CStdString name;
+		ATTRIBUTE_DATA_TYPE type;
+		int precision;
+		bool inheritable;
+	};
+	class CAttribute
+	{
+	public:
+		CStdString strValue;
+		int intValue;
+	};
 	CObjectDatabase();
 	virtual ~CObjectDatabase();
 	virtual bool Open();
@@ -32,7 +56,7 @@ public:
 	bool GetParentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllDescendentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllAncestorObjectTypes(int idObjectType, std::vector<int>& ids);
-	bool GetAllAttributesForObjectType(int idObjectType, std::vector<int>& ids);
+	bool GetAllAttributesForObjectType(int idObjectType, std::vector<CAttributeType>& types);
 	bool GetAllArtworkTypesForObjectType(int idObjectType, std::vector<int>& ids);
 
 	int AddObjectType(int idParentObjectType,const CStdString& stub,const CStdString& name);
@@ -53,6 +77,10 @@ public:
 	bool LinkScraperToPath(CStdString& scraper, CStdString& path);
 
 	int AddDirEnt(const CStdString& strFileNameAndPath);
+
+	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
+	int GetObjectType(int idObject);
+	bool AddAttributesForObject(const int& idObject, std::map<int, CAttribute> attributes);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
