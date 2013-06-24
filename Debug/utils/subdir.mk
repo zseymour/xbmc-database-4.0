@@ -7,6 +7,8 @@ CPP_SRCS += \
 ../utils/Crc32.cpp \
 ../utils/RegExp.cpp \
 ../utils/StringUtils.cpp \
+../utils/URIUtils.cpp \
+../utils/UrlOptions.cpp \
 ../utils/Variant.cpp \
 ../utils/log.cpp 
 
@@ -17,6 +19,8 @@ OBJS += \
 ./utils/Crc32.o \
 ./utils/RegExp.o \
 ./utils/StringUtils.o \
+./utils/URIUtils.o \
+./utils/UrlOptions.o \
 ./utils/Variant.o \
 ./utils/fstrcmp.o \
 ./utils/log.o 
@@ -28,6 +32,8 @@ CPP_DEPS += \
 ./utils/Crc32.d \
 ./utils/RegExp.d \
 ./utils/StringUtils.d \
+./utils/URIUtils.d \
+./utils/UrlOptions.d \
 ./utils/Variant.d \
 ./utils/log.d 
 
