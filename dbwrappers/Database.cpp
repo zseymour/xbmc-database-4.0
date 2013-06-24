@@ -522,7 +522,7 @@ bool CDatabase::UpdateVersion(const CStdString &dbName)
     BeginTransaction();
     try
     {
-      //success = UpdateOldVersion(version);
+      success = UpdateOldVersion(version);
       if (success)
         success = UpdateVersionNumber();
     }
