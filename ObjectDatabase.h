@@ -45,11 +45,14 @@ public:
 	int GetPathId(const CStdString& strPath);
 	bool GetPathHash(const CStdString &path, CStdString &hash);
 	bool SetPathHash(const CStdString &path, const CStdString &hash);
+	void SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName);
 
 	int AddScraper(const CStdString& scraper, const CStdString& content);
 	int GetScraperId(const CStdString& scraper);
 	bool LinkScraperToPath(int& idScraper, int& idPath);
-	bool LinkScraperToPath(CStdString& scraper, CStdString& idPath);
+	bool LinkScraperToPath(CStdString& scraper, CStdString& path);
+
+	int AddDirEnt(const CStdString& strFileNameAndPath);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };

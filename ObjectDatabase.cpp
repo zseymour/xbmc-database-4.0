@@ -8,6 +8,7 @@
 #include "ObjectDatabase.h"
 #include "dbwrappers/dataset.h"
 #include "utils/URIUtils.h"
+#include "URL.h"
 
 
 
@@ -449,6 +450,23 @@ bool CObjectDatabase::SetPathHash(const CStdString &path, const CStdString &hash
   return false;
 }
 
+void CObjectDatabase::SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName)
+{
+  if (URIUtils::IsStack(strFileNameAndPath) || strFileNameAndPath.Mid(0,6).Equals("rar://") || strFileNameAndPath.Mid(0,6).Equals("zip://"))
+  {
+    URIUtils::GetParentPath(strFileNameAndPath,strPath);
+    strFileName = strFileNameAndPath;
+  }
+  else if (URIUtils::IsPlugin(strFileNameAndPath))
+  {
+    CURL url(strFileNameAndPath);
+    strPath = url.GetWithoutFilename();
+    strFileName = strFileNameAndPath;
+  }
+  else
+    URIUtils::Split(strFileNameAndPath,strPath, strFileName);
+}
+
 int CObjectDatabase::AddScraper(const CStdString& scraper, const CStdString& content )
 {
 	CStdString strSQL;
@@ -526,9 +544,51 @@ bool CObjectDatabase::LinkScraperToPath(CStdString& scraper, CStdString& path)
 	int idPath = GetPathId(path);
 	if(idPath < 0)
 		idPath = AddPath(path);
+	if(idPath < 0)
+		return false;
 
 	return LinkScraperToPath(idScraper, idPath);
 }
 
+int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
+{
+
+	  CStdString strSQL = "";
+	  try
+	  {
+	    int idDirent;
+	    if (NULL == m_pDB.get()) return -1;
+	    if (NULL == m_pDS.get()) return -1;
+
+	    CStdString strFileName, strPath;
+	    SplitPath(strFileNameAndPath,strPath,strFileName);
+
+	    int idPath = AddPath(strPath);
+	    if (idPath < 0)
+	      return -1;
+
+	    CStdString strSQL=PrepareSQL("select idDirent from dirents where filename='%s' and idPath=%i", strFileName.c_str(),idPath);
+
+	    m_pDS->query(strSQL.c_str());
+	    if (m_pDS->num_rows() > 0)
+	    {
+	      idDirent = m_pDS->fv("idDirent").get_asInt() ;
+	      m_pDS->close();
+	      return idDirent;
+	    }
+	    m_pDS->close();
+
+	    strSQL=PrepareSQL("insert into dirents (idDirent, idPath, filename) values(NULL, %i, '%s')", idPath, strFileName.c_str());
+	    m_pDS->exec(strSQL.c_str());
+	    idDirent = (int)m_pDS->lastinsertid();
+	    return idDirent;
+	  }
+	  catch (...)
+	  {
+	    CLog::Log(LOGERROR, "%s unable to addfile (%s)", __FUNCTION__, strSQL.c_str());
+	  }
+	  return -1;
+	}
+}
 
 
