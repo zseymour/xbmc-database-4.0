@@ -27,16 +27,33 @@ public:
 	CObjectDatabase();
 	virtual ~CObjectDatabase();
 	virtual bool Open();
+
 	bool GetChildObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetParentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllDescendentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllAncestorObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllAttributesForObjectType(int idObjectType, std::vector<int>& ids);
+	bool GetAllArtworkTypesForObjectType(int idObjectType, std::vector<int>& ids);
+
+	int AddObjectType(int idParentObjectType,const CStdString& stub,const CStdString& name);
+	int GetObjectTypeID(const CStdString& stub);
+
+	int AddAttributeType(int idObjectType, CStdString& stub, CStdString& name, int dataType = 0, int dataPrecision = 0, int inheritable = 0);
+	int GetAttributeTypeID(const CStdString& stub);
+
+	int AddPath(const CStdString& strPath);
+	int GetPathId(const CStdString& strPath);
+	bool GetPathHash(const CStdString &path, CStdString &hash);
+	bool SetPathHash(const CStdString &path, const CStdString &hash);
+
+	int AddScraper(const CStdString& scraper, const CStdString& content);
+	int GetScraperId(const CStdString& scraper);
+	bool LinkScraperToPath(int& idScraper, int& idPath);
+	bool LinkScraperToPath(CStdString& scraper, CStdString& idPath);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
 	virtual int GetMinVersion() const;
-	int AddToTable(const CStdString& table, const CStdString& firstField, const CStdString& secondField, const CStdString& value);
 
 };
 
