@@ -28,17 +28,34 @@ int main()
 	CObjectDatabase db;
 	if(db.Open())
 	{
-		vector<int> ids;
-		int id = db.GetObjectTypeID("movie");
-		if(db.GetAllArtworkTypesForObjectType(id,ids))
-		{
-//			for(vector<int>::iterator it = ids.begin(); it != ids.end(); ++it)
-//			{
-//				cout << *it << endl;
-//			}
+		CStdString path = "/home/zach/movies/";
+		int pathId = db.AddPath(path);
+		int scraperId = db.AddScraper("scraper.movie","movies");
+		db.LinkScraperToPath(scraperId, pathId);
 
-			cout << StringUtils::Join(ids,",");
-		}
+		CStdString filename = "/home/zach/movies/Brave.mkv";
+		int idDirEnt = db.AddDirEnt(filename);
+		int idObjectType = db.GetObjectTypeId("movie");
+		int idObject = db.AddObject(idObjectType, "brave", "Brave");
+		db.LinkObjectToDirent(idObject, idDirEnt);
+
+		CObjectDatabase::CAttribute fileAttr;
+		fileAttr.strValue = filename;
+		CObjectDatabase::CAttribute onlineRatingAttr;
+		onlineRatingAttr.intValue = 98;
+		CObjectDatabase::CAttribute contentRatingAttr;
+		contentRatingAttr.strValue = "PG-13";
+		CObjectDatabase::CAttribute votesAttr;
+		votesAttr.intValue = 31134;
+
+		map<CStdString, CObjectDatabase::CAttribute> attributes;
+		attributes["filename"] = fileAttr;
+		attributes["onlinerating"] = onlineRatingAttr;
+		attributes["contentrating"] = contentRatingAttr;
+		attributes["votes"] = votesAttr;
+
+		db.AddAttributesForObject(idObject, attributes);
+
 	}
 
 //	sqlite3 *db;
