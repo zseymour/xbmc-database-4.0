@@ -18,7 +18,6 @@ CObjectDatabase::CObjectDatabase()
 	settings.host = host;
 	settings.name = "database";
 	settings.type = "sqlite3";
-
 }
 
 CObjectDatabase::~CObjectDatabase()
@@ -154,7 +153,43 @@ bool CObjectDatabase::GetAllAncestorObjectTypes(int idObjectType, std::vector<in
 		  return false;
 }
 
-bool CObjectDatabase::GetAllAttributesForObjectType(int idObjectType, std::vector<CAttributeType>& types)
+bool CObjectDatabase::GetAllAttributeTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
+{
+
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		std::vector<int> objectIds;
+
+
+
+		if(GetAllAncestorObjectTypes(idObjectType,objectIds))
+		{
+
+			CStdString strSQL=PrepareSQL("select idAttributeType from attributeTypes where idObjectType IN (%s) AND inheritable = 1 OR idObjectType = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
+			m_pDS2->query(strSQL.c_str());
+			while (!m_pDS2->eof())
+			{
+
+				types.push_back(m_pDS2->fv("idAttributeType").get_asInt());
+				m_pDS2->next();
+			}
+
+			m_pDS2->close();
+			return true;
+		}
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::GetAllAttributeTypesForObjectType(int idObjectType, std::vector<CAttributeType>& types)
 {
 	try
 	{
@@ -300,7 +335,7 @@ int CObjectDatabase::AddAttributeType(int idObjectType, CStdString& stub, CStdSt
 		return -1;
 }
 
-int CObjectDatabase::GetObjectTypeID(const CStdString& stub)
+int CObjectDatabase::GetObjectTypeId(const CStdString& stub)
 {
 	try
 	{
@@ -325,7 +360,7 @@ int CObjectDatabase::GetObjectTypeID(const CStdString& stub)
 	return -1;
 }
 
-int CObjectDatabase::GetAttributeTypeID(const CStdString& stub)
+int CObjectDatabase::GetAttributeTypeId(const CStdString& stub)
 {
 	try
 	{
@@ -368,7 +403,7 @@ int CObjectDatabase::AddPath(const CStdString& strPath)
 
     URIUtils::AddSlashAtEnd(strPath1);
 
-    strSQL=PrepareSQL("insert into path (idPath, path) values (NULL,'%s')", strPath1.c_str());
+    strSQL=PrepareSQL("insert into paths (idPath, path) values (NULL,'%s')", strPath1.c_str());
     m_pDS->exec(strSQL.c_str());
     idPath = (int)m_pDS->lastinsertid();
     return idPath;
@@ -395,7 +430,7 @@ int CObjectDatabase::GetPathId(const CStdString& strPath)
 
     URIUtils::AddSlashAtEnd(strPath1);
 
-    strSQL=PrepareSQL("select idPath from paths where strPath='%s'",strPath1.c_str());
+    strSQL=PrepareSQL("select idPath from paths where path='%s'",strPath1.c_str());
     m_pDS->query(strSQL.c_str());
     if (!m_pDS->eof())
       idPath = m_pDS->fv("idPath").get_asInt();
@@ -485,7 +520,7 @@ int CObjectDatabase::AddScraper(const CStdString& scraper, const CStdString& con
 	  {
 	    int idScraper = GetScraperId(scraper);
 	    if (idScraper >= 0)
-	      return idScraper; // already have the path
+	      return idScraper; // already have the scraper
 
 	    if (NULL == m_pDB.get()) return -1;
 	    if (NULL == m_pDS.get()) return -1;
@@ -513,8 +548,8 @@ int CObjectDatabase::GetScraperId(const CStdString& scraper)
 
 		strSQL=PrepareSQL("select idScraper from scrapers where scraper='%s'",scraper.c_str());
 		m_pDS->query(strSQL.c_str());
-		if (!m_pDS->eof())
-			idScraper = m_pDS->fv("scraper").get_asInt();
+		if (m_pDS->num_rows() > 0)
+			idScraper = m_pDS->fv("idScraper").get_asInt();
 
 		m_pDS->close();
 		return idScraper;
@@ -635,6 +670,26 @@ int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, 
 	return -1;
 }
 
+bool CObjectDatabase::LinkObjectToDirent(int& idObject, int& idDirent)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		strSQL=PrepareSQL("INSERT INTO objectlinkdirent (idObject, idDirent) VALUES (%i, %i)",idObject,idDirent);
+		m_pDS->exec(strSQL.c_str());
+
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to linkobject (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return false;
+}
+
 int CObjectDatabase::GetObjectType(int idObject)
 {
 	CStdString strSQL;
@@ -664,6 +719,9 @@ int CObjectDatabase::GetObjectType(int idObject)
  * attributes is of the form
  *
  * attributes[idAttributeType] = CAttribute attr;
+ *
+ * Loops through all possible attribute types for the given object,
+ * checking if they are in the map
  */
 bool CObjectDatabase::AddAttributesForObject(const int& idObject, map<int, CAttribute> attributes)
 {
@@ -678,7 +736,7 @@ bool CObjectDatabase::AddAttributesForObject(const int& idObject, map<int, CAttr
 		if (NULL == m_pDS.get()) return false;
 
 		vector<CAttributeType> types;
-		if(GetAllAttributesForObjectType(idObjectType, types))
+		if(GetAllAttributeTypesForObjectType(idObjectType, types))
 		{
 			for(vector<CAttributeType>::iterator it = types.begin(); it != types.end(); ++it)
 			{
@@ -691,18 +749,10 @@ bool CObjectDatabase::AddAttributesForObject(const int& idObject, map<int, CAttr
 				{
 					continue;
 				}
-				switch (it->type) {
-				case STRING_ATTRIBUTE:
-					strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueString) VALUES (%i, %i '%s')",idObject, it->idAttributeType, attr.strValue);
-					break;
-				case NUMBER_ATTRIBUTE:
-					strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueNumber) VALUES (%i, %i '%s')",idObject, it->idAttributeType, attr.intValue);
-					break;
-				case BLOB_ATTRIBUTE:
-					break;
-				}
+				int attrId = GetAttributeId(idObject,it->idAttributeType);
 
-				m_pDS->exec(strSQL.c_str());
+				SetAttribute(idObject, *it, attr, attrId);
+
 			}
 			return true;
 		}
@@ -715,5 +765,230 @@ bool CObjectDatabase::AddAttributesForObject(const int& idObject, map<int, CAttr
 	}
 	return false;
 }
+
+/**
+ * Converts attribute type stubs to IDs and passes them along
+ */
+bool CObjectDatabase::AddAttributesForObject(const int& idObject, map<CStdString, CAttribute> attributes)
+{
+	typedef map<CStdString, CAttribute>::iterator it_type;
+	map<int, CAttribute> newAttributes;
+	for(it_type iterator = attributes.begin(); iterator != attributes.end(); ++iterator)
+	{
+		int idKey = GetAttributeTypeId(iterator->first);
+		if(idKey >= 0)
+			newAttributes[idKey] = iterator->second;
+	}
+
+	return AddAttributesForObject(idObject, newAttributes);
+}
+
+bool CObjectDatabase::SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute)
+{
+	CStdString strSQL;
+	try
+	{
+
+		if(!isValidAttributeType(idObject, attrType.idAttributeType)) return false;
+
+		switch (attrType.type) {
+		case STRING_ATTRIBUTE:
+			if(idAttribute < 0)
+			{
+				strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueString) VALUES (%i, %i, '%s')",idObject, attrType.idAttributeType, attr.strValue.c_str());
+			}
+			else
+			{
+				strSQL=PrepareSQL("UPDATE attributes SET valueString='%s' WHERE idAttribute=%i", attr.strValue.c_str(), idAttribute);
+			}
+			break;
+		case NUMBER_ATTRIBUTE:
+			if(idAttribute < 0)
+			{
+				strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueNumber) VALUES (%i, %i, %i)",idObject, attrType.idAttributeType, attr.intValue);
+			}
+			else
+			{
+				strSQL=PrepareSQL("UPDATE attributes SET valueNumber=%i WHERE idAttribute=%i", attr.intValue, idAttribute);
+			}
+			break;
+		case BLOB_ATTRIBUTE:
+			break;
+		}
+
+		m_pDS->exec(strSQL.c_str());
+
+		return true;
+	}
+	catch(...)
+	{
+		CLog::Log(LOGERROR, "%s unable to setattribute (%s)", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
+
+bool CObjectDatabase::isValidAttributeType(int idObject, int idAttributeType)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		int idObjectType = GetObjectType(idObject);
+		vector<int> attributeTypes;
+		if(GetAllAttributeTypeIDsForObjectType(idObjectType, attributeTypes))
+		{
+			return std::find(attributeTypes.begin(), attributeTypes.end(), idAttributeType) != attributeTypes.end();
+		}
+
+	}
+	catch(...)
+	{
+		CLog::Log(LOGERROR, "%s unable to checkvalidity (%s)", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
+
+int CObjectDatabase::GetAttributeId(int idObject, int idAttributeType)
+{
+	CStdString strSQL;
+	try
+	{
+		int idAttribute=-1;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		strSQL=PrepareSQL("select idAttribute from attributes where idObject=%i AND idAttributeType=%i",idObject,idAttributeType);
+		m_pDS->query(strSQL.c_str());
+		if (!m_pDS->eof())
+			idAttribute = m_pDS->fv("idAttribute").get_asInt();
+
+		m_pDS->close();
+		return idAttribute;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getattributeid (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
+bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
+{
+	CStdString strSQL;
+		try
+		{
+
+			if (NULL == m_pDB.get()) return false;
+			if (NULL == m_pDS.get()) return false;
+
+			strSQL=PrepareSQL("SELECT * FROM attributes AS a INNER JOIN attributeTypes AS at ON a.idAttributeType = at.idAttributeType WHERE idAttribute=%i", idAttribute);
+			m_pDS2->query(strSQL.c_str());
+			if(!m_pDS2->eof())
+			{
+				CAttributeType t;
+				t.idAttributeType = m_pDS2->fv("at.idAttributeType").get_asInt();
+				t.idObjectType = m_pDS2->fv("at.idObjectType").get_asInt();
+				t.inheritable = m_pDS2->fv("at.inheritable").get_asBool();
+				t.name = m_pDS2->fv("at.name").get_asString();
+				t.stub = m_pDS2->fv("at.stub").get_asString();
+				t.type = ATTRIBUTE_DATA_TYPE(m_pDS2->fv("at.dataType").get_asInt());
+				t.precision = m_pDS2->fv("at.dataPrecision").get_asInt();
+
+				attribute.intValue = m_pDS2->fv("a.valueNumber").get_asInt();
+				attribute.strValue = m_pDS2->fv("a.valueString").get_asString();
+				attribute.type = t;
+
+				m_pDS2->close();
+				return true;
+			}
+
+
+
+		}
+		catch (...)
+		{
+			CLog::Log(LOGERROR, "%s unable to getattribute (%s)", __FUNCTION__, strSQL.c_str());
+		}
+		return false;
+}
+
+bool CObjectDatabase::GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
+{
+
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		std::vector<int> objectIds;
+
+
+
+		if(GetAllAncestorObjectTypes(idObjectType,objectIds))
+		{
+
+			CStdString strSQL=PrepareSQL("select idRelationshipType from attributeTypes where idObjectType1 IN (%s) AND inheritableType1 = 1 OR idObjectType1 = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
+			m_pDS2->query(strSQL.c_str());
+			while (!m_pDS2->eof())
+			{
+
+				types.push_back(m_pDS2->fv("idRelationshipType").get_asInt());
+				m_pDS2->next();
+			}
+
+			m_pDS2->close();
+			return true;
+		}
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
+{
+
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		std::vector<int> objectIds;
+
+
+
+		if(GetAllAncestorObjectTypes(idObjectType,objectIds))
+		{
+
+			CStdString strSQL=PrepareSQL("select idArtworkType from attributeTypes where idObjectType IN (%s) AND inheritable = 1 OR idObjectType = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
+			m_pDS2->query(strSQL.c_str());
+			while (!m_pDS2->eof())
+			{
+
+				types.push_back(m_pDS2->fv("idArtworkType").get_asInt());
+				m_pDS2->next();
+			}
+
+			m_pDS2->close();
+			return true;
+		}
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
+
+	return false;
+}
+
 
 

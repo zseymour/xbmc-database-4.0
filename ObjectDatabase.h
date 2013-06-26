@@ -45,6 +45,7 @@ public:
 	class CAttribute
 	{
 	public:
+		CAttributeType type;
 		CStdString strValue;
 		int intValue;
 	};
@@ -56,14 +57,15 @@ public:
 	bool GetParentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllDescendentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllAncestorObjectTypes(int idObjectType, std::vector<int>& ids);
-	bool GetAllAttributesForObjectType(int idObjectType, std::vector<CAttributeType>& types);
+	bool GetAllAttributeTypesForObjectType(int idObjectType, std::vector<CAttributeType>& types);
+	bool GetAllAttributeTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
 	bool GetAllArtworkTypesForObjectType(int idObjectType, std::vector<int>& ids);
 
 	int AddObjectType(int idParentObjectType,const CStdString& stub,const CStdString& name);
-	int GetObjectTypeID(const CStdString& stub);
+	int GetObjectTypeId(const CStdString& stub);
 
 	int AddAttributeType(int idObjectType, CStdString& stub, CStdString& name, int dataType = 0, int dataPrecision = 0, int inheritable = 0);
-	int GetAttributeTypeID(const CStdString& stub);
+	int GetAttributeTypeId(const CStdString& stub);
 
 	int AddPath(const CStdString& strPath);
 	int GetPathId(const CStdString& strPath);
@@ -79,12 +81,23 @@ public:
 	int AddDirEnt(const CStdString& strFileNameAndPath);
 
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
+	bool LinkObjectToDirent(int& idObject, int& idDirent);
 	int GetObjectType(int idObject);
+
 	bool AddAttributesForObject(const int& idObject, std::map<int, CAttribute> attributes);
+	bool AddAttributesForObject(const int& idObject, std::map<CStdString, CAttribute> attributes);
+	int GetAttributeId(int idObject, int idAttributeType);
+	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
+	bool GetAttribute(const int idAttribute, CAttribute& attribute);
+
+	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
+
+	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
 	virtual int GetMinVersion() const;
+	bool isValidAttributeType(int idObject, int idAttributeType);
 
 };
 
