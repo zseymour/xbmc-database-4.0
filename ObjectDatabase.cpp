@@ -403,7 +403,11 @@ int CObjectDatabase::AddPath(const CStdString& strPath)
 
     URIUtils::AddSlashAtEnd(strPath1);
 
-    strSQL=PrepareSQL("insert into paths (idPath, path) values (NULL,'%s')", strPath1.c_str());
+    int parentId = GetPathId(URIUtils::GetParentPath(strPath1));
+    if(parentId < 0)
+    	parentId = 0;
+
+    strSQL=PrepareSQL("insert into paths (idPath, idParent, path) values (NULL,%i,'%s')", parentId, strPath1.c_str());
     m_pDS->exec(strSQL.c_str());
     idPath = (int)m_pDS->lastinsertid();
     return idPath;
@@ -918,7 +922,57 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 		return false;
 }
 
-bool CObjectDatabase::GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
+bool CObjectDatabase::isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		int idObjectType1 = GetObjectType(idObject1);
+		int idObjectType2 = GetObjectType(idObject2);
+		vector< pair<int,int> > relationships;
+		if(GetAllRelationshipTypeIDsForObjectType(idObjectType1, relationships))
+		{
+			return std::find(relationships.begin(), relationships.end(), make_pair(idRelationshipType,idObjectType2)) != relationships.end();
+		}
+
+	}
+	catch(...)
+	{
+		CLog::Log(LOGERROR, "%s unable to checkvalidity (%s)", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
+int CObjectDatabase::GetRelationshipTypeId(const CStdString stub)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+		int idRelationshipType = -1;
+		CStdString strSQL = PrepareSQL("SELECT idRelationshipType FROM relationshipTypes WHERE stub LIKE '%s'",stub.c_str());
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() == 1)
+		{
+			idRelationshipType = m_pDS->fv("idRelationshipType").get_asInt();
+			m_pDS->close();
+		}
+
+		return idRelationshipType;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, stub.c_str() );
+	}
+
+	return -1;
+}
+
+bool CObjectDatabase::GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<pair <int,int> >& types)
 {
 
 	try
@@ -933,12 +987,13 @@ bool CObjectDatabase::GetAllRelationshipTypeIDsForObjectType(int idObjectType, s
 		if(GetAllAncestorObjectTypes(idObjectType,objectIds))
 		{
 
-			CStdString strSQL=PrepareSQL("select idRelationshipType from attributeTypes where idObjectType1 IN (%s) AND inheritableType1 = 1 OR idObjectType1 = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
+			CStdString strSQL=PrepareSQL("select idRelationshipType, idObjectType2 from relationshipTypes where idObjectType1 IN (%s) AND inheritableType1 = 1 OR idObjectType1 = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
 			m_pDS2->query(strSQL.c_str());
 			while (!m_pDS2->eof())
 			{
-
-				types.push_back(m_pDS2->fv("idRelationshipType").get_asInt());
+				int idRelationshipType = m_pDS2->fv("idRelationshipType").get_asInt();
+				int idObjectType2 = m_pDS2->fv("idObjectType2").get_asInt();
+				types.push_back(make_pair(idRelationshipType, idObjectType2));
 				m_pDS2->next();
 			}
 
@@ -952,6 +1007,63 @@ bool CObjectDatabase::GetAllRelationshipTypeIDsForObjectType(int idObjectType, s
 	}
 
 	return false;
+}
+
+int CObjectDatabase::GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index)
+{
+	CStdString strSQL;
+	try
+	{
+		int idRelationship=-1;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		strSQL = PrepareSQL("SELECT idRelationship FROM relationships WHERE idRelationshipType=%i AND idObject1=%i AND idObject2=%i AND link LIKE '%s' AND sequenceIndex=%i",
+				idRelationshipType, idObject1, idObject2, link.c_str(), index);
+
+		m_pDS->query(strSQL.c_str());
+		if (!m_pDS->eof())
+			idRelationship = m_pDS->fv("idRelationship").get_asInt();
+
+		m_pDS->close();
+		return idRelationship;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getrelationship (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
+int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index)
+{
+	CStdString strSQL;
+		try
+		{
+			if (NULL == m_pDB.get()) return -1;
+			if (NULL == m_pDS.get()) return -1;
+
+			int idRelationship = GetRelationshipId(idRelationshipType, idObject1, idObject2, link, index);
+
+			if(idRelationship >= 0)
+				return idRelationship;
+
+
+			if(isValidRelationshipType(idRelationshipType, idObject1, idObject2))
+			{
+				strSQL=PrepareSQL("INSERT INTO relationships (idRelationshipType, idObject1, idObject2,link, sequenceIndex) VALUES (%i, %i, %i, '%s', %i)",idRelationshipType,idObject1,idObject2,link.c_str(),index);
+				m_pDS->exec(strSQL.c_str());
+
+				return m_pDS->lastinsertid();
+			}
+
+
+		}
+		catch (...)
+		{
+			CLog::Log(LOGERROR, "%s unable to linkobject (%s)", __FUNCTION__, strSQL.c_str());
+		}
+		return -1;
 }
 
 bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
@@ -990,5 +1102,127 @@ bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::v
 	return false;
 }
 
+int CObjectDatabase::AddProfile(CStdString name)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		int idProfile = GetProfileId(name);
+
+		if(idProfile >= 0)
+			return idProfile;
+
+
+
+		strSQL=PrepareSQL("INSERT INTO profile (name) VALUES ('%s')", name.c_str());
+		m_pDS->exec(strSQL.c_str());
+
+		return m_pDS->lastinsertid();
+
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to addprofile (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
+int CObjectDatabase::GetProfileId(CStdString name)
+{
+	CStdString strSQL;
+	try
+	{
+		int idProfile=-1;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		strSQL = PrepareSQL("SELECT idProfile FROM profile WHERE name LIKE '%s'", name.c_str());
+
+		m_pDS->query(strSQL.c_str());
+		if (!m_pDS->eof())
+			idProfile = m_pDS->fv("idRelationship").get_asInt();
+
+		m_pDS->close();
+		return idProfile;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getprofile (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
+/// \brief GetStackTimes() obtains any saved video times for the stacked file
+/// \retval Returns true if the stack times exist, false otherwise.
+bool CObjectDatabase::GetStackTimes(const CStdString &filePath, vector<int> &times)
+{
+  try
+  {
+    // obtain the FileID (if it exists)
+    int idFile = AddDirEnt(filePath);
+    if (idFile < 0) return false;
+    if (NULL == m_pDB.get()) return false;
+    if (NULL == m_pDS.get()) return false;
+    // ok, now obtain the settings for this file
+    CStdString strSQL=PrepareSQL("select times from stacktimes where idDirent=%i\n", idFile);
+    m_pDS->query( strSQL.c_str() );
+    if (m_pDS->num_rows() > 0)
+    { // get the video settings info
+      CStdStringArray timeString;
+      int timeTotal = 0;
+      StringUtils::SplitString(m_pDS->fv("times").get_asString(), ",", timeString);
+      times.clear();
+      for (unsigned int i = 0; i < timeString.size(); i++)
+      {
+        times.push_back(atoi(timeString[i].c_str()));
+        timeTotal += atoi(timeString[i].c_str());
+      }
+      m_pDS->close();
+      return (timeTotal > 0);
+    }
+    m_pDS->close();
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  return false;
+}
+
+/// \brief Sets the stack times for a particular video file
+void CObjectDatabase::SetStackTimes(const CStdString& filePath, vector<int> &times)
+{
+  try
+  {
+    if (NULL == m_pDB.get()) return ;
+    if (NULL == m_pDS.get()) return ;
+    int idFile = AddDirEnt(filePath);
+    if (idFile < 0)
+      return;
+
+    // delete any existing items
+    m_pDS->exec( PrepareSQL("delete from stacktimes where idDirent=%i", idFile) );
+
+    // add the items
+    CStdString timeString;
+    timeString.Format("%i", times[0]);
+    for (unsigned int i = 1; i < times.size(); i++)
+    {
+      CStdString time;
+      time.Format(",%i", times[i]);
+      timeString += time;
+    }
+    m_pDS->exec( PrepareSQL("insert into stacktimes (idDirent,times) values (%i,'%s')\n", idFile, timeString.c_str()) );
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, filePath.c_str());
+  }
+}
 
 

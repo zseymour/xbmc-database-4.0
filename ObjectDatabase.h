@@ -90,15 +90,24 @@ public:
 	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
 	bool GetAttribute(const int idAttribute, CAttribute& attribute);
 
-	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
+	int GetRelationshipTypeId(const CStdString stub);
+	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
+	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
+	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
 
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
+
+	int AddProfile(CStdString name);
+	int GetProfileId(CStdString name);
+
+	bool GetStackTimes(const CStdString &filePath, std::vector<int> &times);
+	void SetStackTimes(const CStdString& filePath, std::vector<int> &times);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
 	virtual int GetMinVersion() const;
 	bool isValidAttributeType(int idObject, int idAttributeType);
-
+	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
 };
 
 #endif /* OBJECTDATABASE_H_ */
