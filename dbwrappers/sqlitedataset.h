@@ -144,6 +144,7 @@ or insert() operations default = false) */
 /* func. executes a query without results to return */
   virtual int  exec ();
   virtual int  exec (const std::string &sql);
+  virtual int  insert_w_blob(const std::string &sql, unsigned char * blob, int fileSize);
   virtual const void* getExecRes();
 /* as open, but with our query exept Sql */
   virtual bool query(const char *query);

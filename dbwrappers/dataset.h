@@ -294,6 +294,7 @@ public:
 /* func. executes a query without results to return */
   virtual int  exec (const std::string &sql) = 0;
   virtual int  exec() = 0;
+  virtual int  insert_w_blob(const std::string &sql, unsigned char * blob, int fileSize) = 0;
   virtual const void* getExecRes()=0;
 /* as open, but with our query exept Sql */
   virtual bool query(const char *sql) = 0;

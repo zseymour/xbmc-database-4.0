@@ -592,6 +592,36 @@ int SqliteDataset::exec() {
 	return exec(sql);
 }
 
+int  SqliteDataset::insert_w_blob(const std::string &sql, unsigned char * blob, int fileSize)
+{
+	if (!handle()) throw DbErrors("No Database Connection");
+	int res;
+	exec_res.clear();
+
+	sqlite3_stmt *ppStmt;
+	if(sqlite3_prepare_v2(handle(),sql.c_str(), -1, &ppStmt, NULL) != SQLITE_OK)
+	{
+		throw DbErrors("Could not prepare SQL statement.");
+	}
+
+	if(ppStmt)
+	{
+		if(sqlite3_bind_blob(ppStmt,1, blob, fileSize, SQLITE_TRANSIENT) != SQLITE_OK)
+		{
+			throw DbErrors("Error binding BLOB to statement.");
+		}
+	}
+
+	 if((res = db->setErr(sqlite3_step(ppStmt), sql.c_str())) != SQLITE_OK)
+	      throw DbErrors(db->getErrorMsg());
+
+
+	sqlite3_finalize(ppStmt);
+
+	return res;
+
+}
+
 const void* SqliteDataset::getExecRes() {
   return &exec_res;
 }
