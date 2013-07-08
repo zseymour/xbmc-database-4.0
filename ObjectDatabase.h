@@ -12,6 +12,7 @@
 #include "utils/StdString.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "Bookmark.h"
 
 #include <memory>
 #include <set>
@@ -103,7 +104,12 @@ public:
 	bool GetStackTimes(const CStdString &filePath, std::vector<int> &times);
 	void SetStackTimes(const CStdString& filePath, std::vector<int> &times);
 
-
+	void GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend);
+	bool GetResumeBookMark(const CStdString& strFilenameAndPath, int idProfile, CBookmark &bookmark);
+	void DeleteResumeBookMark(const CStdString &strFilenameAndPath, int idProfile);
+	void AddBookMarkToFile(const CStdString& strFilenameAndPath, int idProfile, const CBookmark &bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
+	void ClearBookMarkOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark& bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
+	void ClearBookMarksOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark::EType type /*= CBookmark::STANDARD*/);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };

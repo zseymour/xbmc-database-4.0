@@ -1225,4 +1225,173 @@ void CObjectDatabase::SetStackTimes(const CStdString& filePath, vector<int> &tim
   }
 }
 
+void CObjectDatabase::GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend)
+{
+  try
+  {
+//    if (URIUtils::IsStack(strFilenameAndPath) && CFileItem(CStackDirectory::GetFirstStackedFile(strFilenameAndPath),false).IsDVDImage())
+//    {
+//      CStackDirectory dir;
+//      CFileItemList fileList;
+//      dir.GetDirectory(strFilenameAndPath, fileList);
+//      if (!bAppend)
+//        bookmarks.clear();
+//      for (int i = fileList.Size() - 1; i >= 0; i--) // put the bookmarks of the highest part first in the list
+//        GetBookMarksForFile(fileList[i]->GetPath(), bookmarks, type, true, (i+1));
+//    }
+//    else
+//    {
+      int idFile = AddDirEnt(strFilenameAndPath);
+      if (idFile < 0) return ;
+      if (!bAppend)
+        bookmarks.erase(bookmarks.begin(), bookmarks.end());
+      if (NULL == m_pDB.get()) return ;
+      if (NULL == m_pDS.get()) return ;
+
+      CStdString strSQL=PrepareSQL("select * from bookmark where idDirent=%i and idProfile=%i and type=%i order by timeInSeconds", idFile, idProfile, (int)type);
+      m_pDS->query( strSQL.c_str() );
+      while (!m_pDS->eof())
+      {
+        CBookmark bookmark;
+        bookmark.timeInSeconds = m_pDS->fv("timeInSeconds").get_asDouble();
+        bookmark.totalTimeInSeconds = m_pDS->fv("totalTimeInSeconds").get_asDouble();
+        bookmark.thumbNailImage = m_pDS->fv("thumbnailImage").get_asString();
+        bookmark.playerState = m_pDS->fv("playerState").get_asString();
+        bookmark.player = m_pDS->fv("player").get_asString();
+        bookmark.type = type;
+        bookmarks.push_back(bookmark);
+        m_pDS->next();
+      }
+      //sort(bookmarks.begin(), bookmarks.end(), SortBookmarks);
+      m_pDS->close();
+//  }
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+  }
+}
+
+bool CObjectDatabase::GetResumeBookMark(const CStdString& strFilenameAndPath, int idProfile, CBookmark &bookmark)
+{
+  VECBOOKMARKS bookmarks;
+  GetBookMarksForFile(strFilenameAndPath, idProfile, bookmarks, CBookmark::RESUME, false);
+  if (bookmarks.size() > 0)
+  {
+    bookmark = bookmarks[0];
+    return true;
+  }
+  return false;
+}
+
+void CObjectDatabase::DeleteResumeBookMark(const CStdString &strFilenameAndPath, int idProfile)
+{
+  if (!m_pDB.get() || !m_pDS.get())
+    return;
+
+  int fileID = AddDirEnt(strFilenameAndPath);
+  if (fileID < -1)
+    return;
+
+  try
+  {
+    CStdString sql = PrepareSQL("delete from bookmark where idDirent=%i and idProfile=%i and type=%i", fileID, idProfile, CBookmark::RESUME);
+    m_pDS->exec(sql.c_str());
+  }
+  catch(...)
+  {
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+  }
+}
+
+//********************************************************************************************************************************
+void CObjectDatabase::AddBookMarkToFile(const CStdString& strFilenameAndPath, int idProfile, const CBookmark &bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/)
+{
+  try
+  {
+    int idFile = AddDirEnt(strFilenameAndPath);
+    if (idFile < 0)
+      return;
+    if (NULL == m_pDB.get()) return ;
+    if (NULL == m_pDS.get()) return ;
+
+    CStdString strSQL;
+    int idBookmark=-1;
+    if (type == CBookmark::RESUME) // get the same resume mark bookmark each time type
+    {
+      strSQL=PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i", idFile, idProfile, (int)type);
+    }
+    else if (type == CBookmark::STANDARD) // get the same bookmark again, and update. not sure here as a dvd can have same time in multiple places, state will differ thou
+    {
+      /* get a bookmark within the same time as previous */
+      double mintime = bookmark.timeInSeconds - 0.5f;
+      double maxtime = bookmark.timeInSeconds + 0.5f;
+      strSQL=PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i and (timeInSeconds between %f and %f) and playerState='%s'", idFile, idProfile, (int)type, mintime, maxtime, bookmark.playerState.c_str());
+    }
+
+    // update or insert depending if it existed before
+    if (idBookmark >= 0 )
+      strSQL=PrepareSQL("update bookmark set timeInSeconds = %f, totalTimeInSeconds = %f, thumbNailImage = '%s', player = '%s', playerState = '%s' where idBookmark = %i", bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), idBookmark);
+    else
+      strSQL=PrepareSQL("insert into bookmark (idBookmark, idDirent, idProfile, timeInSeconds, totalTimeInSeconds, thumbNailImage, player, playerState, type) values(NULL,%i,%i,%f,%f,'%s','%s','%s', %i)", idFile, idProfile, bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), (int)type);
+
+    m_pDS->exec(strSQL.c_str());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+  }
+}
+
+void CObjectDatabase::ClearBookMarkOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark& bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/)
+{
+  try
+  {
+    int idFile = AddDirEnt(strFilenameAndPath);
+    if (idFile < 0) return ;
+    if (NULL == m_pDB.get()) return ;
+    if (NULL == m_pDS.get()) return ;
+
+    /* a litle bit uggly, we clear first bookmark that is within one second of given */
+    /* should be no problem since we never add bookmarks that are closer than that   */
+    double mintime = bookmark.timeInSeconds - 0.5f;
+    double maxtime = bookmark.timeInSeconds + 0.5f;
+    CStdString strSQL = PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i and playerState like '%s' and player like '%s' and (timeInSeconds between %f and %f)", idFile, idProfile, type, bookmark.playerState.c_str(), bookmark.player.c_str(), mintime, maxtime);
+
+    m_pDS->query( strSQL.c_str() );
+    if (m_pDS->num_rows() != 0)
+    {
+      int idBookmark = m_pDS->get_field_value("idBookmark").get_asInt();
+      strSQL=PrepareSQL("delete from bookmark where idBookmark=%i",idBookmark);
+      m_pDS->exec(strSQL.c_str());
+
+    }
+
+    m_pDS->close();
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+  }
+}
+
+//********************************************************************************************************************************
+void CObjectDatabase::ClearBookMarksOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark::EType type /*= CBookmark::STANDARD*/)
+{
+  try
+  {
+    int idFile = AddDirEnt(strFilenameAndPath);
+    if (idFile < 0) return ;
+    if (NULL == m_pDB.get()) return ;
+    if (NULL == m_pDS.get()) return ;
+
+    CStdString strSQL=PrepareSQL("delete from bookmark where idDirent=%i and idProfile=%i and type=%i", idFile, idProfile, (int)type);
+    m_pDS->exec(strSQL.c_str());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+  }
+}
+
 
