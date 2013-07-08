@@ -31,7 +31,7 @@
  **********************************************************************/
 
 #include "qry_dat.h"
-#include "../utils/system.h" // for PRId64
+#include "../system.h" // for PRId64
 
 #include <stdio.h>
 #include <stdlib.h>

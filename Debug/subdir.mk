@@ -6,6 +6,7 @@
 CPP_SRCS += \
 ../DatabaseManager.cpp \
 ../ObjectDatabase.cpp \
+../TestObjects.cpp \
 ../URL.cpp \
 ../Util.cpp \
 ../test.cpp 
@@ -13,6 +14,7 @@ CPP_SRCS += \
 OBJS += \
 ./DatabaseManager.o \
 ./ObjectDatabase.o \
+./TestObjects.o \
 ./URL.o \
 ./Util.o \
 ./test.o 
@@ -20,6 +22,7 @@ OBJS += \
 CPP_DEPS += \
 ./DatabaseManager.d \
 ./ObjectDatabase.d \
+./TestObjects.d \
 ./URL.d \
 ./Util.d \
 ./test.d 

@@ -102,6 +102,8 @@ public:
 
 	bool GetStackTimes(const CStdString &filePath, std::vector<int> &times);
 	void SetStackTimes(const CStdString& filePath, std::vector<int> &times);
+
+
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };

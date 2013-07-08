@@ -4,6 +4,9 @@
  *  Created on: Jun 17, 2013
  *      Author: zachary
  */
+
+#define TARGET_POSIX 1
+
 #include <iostream>
 #include "DatabaseManager.h"
 #include "ObjectDatabase.h"
@@ -28,34 +31,44 @@ int main()
 	CObjectDatabase db;
 	if(db.Open())
 	{
-		CStdString path = "/home/zach/movies/";
-		int pathId = db.AddPath(path);
-		int scraperId = db.AddScraper("scraper.movie","movies");
-		db.LinkScraperToPath(scraperId, pathId);
 
-		CStdString filename = "/home/zach/movies/Brave.mkv";
-		int idDirEnt = db.AddDirEnt(filename);
-		int idObjectType = db.GetObjectTypeId("movie");
-		int idObject = db.AddObject(idObjectType, "brave", "Brave");
-		db.LinkObjectToDirent(idObject, idDirEnt);
+//		CStdString path = "/home/zach/movies/";
+//		int pathId = db.AddPath(path);
+//		int scraperId = db.AddScraper("scraper.movie","movies");
+//		db.LinkScraperToPath(scraperId, pathId);
+//
+//		CStdString filename = "/home/zach/movies/Brave.mkv";
+//		int idDirEnt = db.AddDirEnt(filename);
+//		int idObjectType = db.GetObjectTypeId("movie");
+//		int idObject = db.AddObject(idObjectType, "brave", "Brave");
+//		db.LinkObjectToDirent(idObject, idDirEnt);
+//
+//		CObjectDatabase::CAttribute fileAttr;
+//		fileAttr.strValue = filename;
+//		CObjectDatabase::CAttribute onlineRatingAttr;
+//		onlineRatingAttr.intValue = 98;
+//		CObjectDatabase::CAttribute contentRatingAttr;
+//		contentRatingAttr.strValue = "PG-13";
+//		CObjectDatabase::CAttribute votesAttr;
+//		votesAttr.intValue = 31134;
+//
+//		map<CStdString, CObjectDatabase::CAttribute> attributes;
+//		attributes["filename"] = fileAttr;
+//		attributes["onlinerating"] = onlineRatingAttr;
+//		attributes["contentrating"] = contentRatingAttr;
+//		attributes["votes"] = votesAttr;
+//
+//		db.AddAttributesForObject(idObject, attributes);
 
-		CObjectDatabase::CAttribute fileAttr;
-		fileAttr.strValue = filename;
-		CObjectDatabase::CAttribute onlineRatingAttr;
-		onlineRatingAttr.intValue = 98;
-		CObjectDatabase::CAttribute contentRatingAttr;
-		contentRatingAttr.strValue = "PG-13";
-		CObjectDatabase::CAttribute votesAttr;
-		votesAttr.intValue = 31134;
+		//int relationship = db.LinkObjectToObject(1, 1, 3, "");
 
-		map<CStdString, CObjectDatabase::CAttribute> attributes;
-		attributes["filename"] = fileAttr;
-		attributes["onlinerating"] = onlineRatingAttr;
-		attributes["contentrating"] = contentRatingAttr;
-		attributes["votes"] = votesAttr;
+		int idPath = db.AddPath("/home/zach/movies/home/year1");
 
-		db.AddAttributesForObject(idObject, attributes);
-
+		cout << idPath << endl;
+	}
+	else
+	{
+		cout << "Database failed to open." << endl;
 	}
 
 //	sqlite3 *db;
