@@ -82,11 +82,17 @@ public:
 	int AddDirEnt(const CStdString& strFileNameAndPath);
 
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
+	void DeleteObject(int idObject);
+	void DeleteObject(CStdString strFileNameAndPath, int idObject);
 	bool LinkObjectToDirent(int& idObject, int& idDirent);
+	void RemoveObjectDirentLink(int idObject);
 	int GetObjectType(int idObject);
+	int GetObjectId(CStdString strFileNameAndPath);
+	bool GetObjectPath(int idObject, CStdString& strFileNameAndPath);
 
 	bool AddAttributesForObject(const int& idObject, std::map<int, CAttribute> attributes);
 	bool AddAttributesForObject(const int& idObject, std::map<CStdString, CAttribute> attributes);
+	void DeleteAttributesForObject(int idObject);
 	int GetAttributeId(int idObject, int idAttributeType);
 	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
 	bool GetAttribute(const int idAttribute, CAttribute& attribute);
@@ -95,6 +101,7 @@ public:
 	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
 	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
+	void DeleteObjectLinks(int idObject);
 
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
 

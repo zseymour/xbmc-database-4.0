@@ -674,6 +674,48 @@ int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, 
 	return -1;
 }
 
+void CObjectDatabase::DeleteObject(int idObject)
+{
+	if(idObject < 0)
+		return;
+
+	CStdString fileNameAndPath;
+	if(GetObjectPath(idObject, fileNameAndPath))
+	{
+		DeleteObject(fileNameAndPath, idObject);
+	}
+}
+
+void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+		if (idObject < 0)
+		{
+			idObject = GetObjectId(strFileNameAndPath);
+			if (idObject < 0)
+				return;
+		}
+
+		BeginTransaction();
+
+		DeleteAttributesForObject(idObject);
+		DeleteObjectLinks(idObject);
+		RemoveObjectDirentLink(idObject);
+
+		strSQL=PrepareSQL("delete from objects where idObject=i%", idObject);
+		m_pDS->exec(strSQL.c_str());
+
+	}
+	catch (...)
+	{
+
+	}
+}
+
 bool CObjectDatabase::LinkObjectToDirent(int& idObject, int& idDirent)
 {
 	CStdString strSQL;
@@ -692,6 +734,30 @@ bool CObjectDatabase::LinkObjectToDirent(int& idObject, int& idDirent)
 		CLog::Log(LOGERROR, "%s unable to linkobject (%s)", __FUNCTION__, strSQL.c_str());
 	}
 	return false;
+}
+
+void CObjectDatabase::RemoveObjectDirentLink(int idObject)
+{
+
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+		if (idObject < 0)
+		{
+			return;
+		}
+
+
+		strSQL=PrepareSQL("delete from objectlinkdirent where idObject=%i", idObject);
+		m_pDS->exec(strSQL.c_str());
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to deleteobjectdirentlink (%s)", __FUNCTION__, strSQL.c_str());
+	}
 }
 
 int CObjectDatabase::GetObjectType(int idObject)
@@ -716,6 +782,66 @@ int CObjectDatabase::GetObjectType(int idObject)
 		CLog::Log(LOGERROR, "%s unable to getobjecttype (%s)", __FUNCTION__, strSQL.c_str());
 	}
 	return -1;
+}
+
+int CObjectDatabase::GetObjectId(CStdString strFileNameAndPath)
+{
+	CStdString strSQL = "";
+	try
+	{
+		int idObject;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		CStdString strFileName, strPath;
+		SplitPath(strFileNameAndPath,strPath,strFileName);
+
+		CStdString strSQL=PrepareSQL("select oID from viewObjectDirentAll where dFileName='%s' and pPath LIKE '%%%s%%'", strFileName.c_str(),strPath.c_str());
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			idObject = m_pDS->fv("oID").get_asInt() ;
+			m_pDS->close();
+			return idObject;
+		}
+		m_pDS->close();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getobjectid (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
+bool CObjectDatabase::GetObjectPath(int idObject, CStdString& strFileNameAndPath)
+{
+	CStdString strSQL = "";
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+
+
+		CStdString strSQL=PrepareSQL("select dFileName, pPath from viewObjectDirentAll where oID=%i", idObject);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			CStdString strFileName = m_pDS->fv("dFileName").get_asString();
+			CStdString strPath = m_pDS->fv("pPath").get_asString();
+			strFileNameAndPath = URIUtils::AddFileToFolder(strPath, strFileName);
+			m_pDS->close();
+			return true;
+		}
+		m_pDS->close();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getobjectpath (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return false;
 }
 
 /**
@@ -785,6 +911,29 @@ bool CObjectDatabase::AddAttributesForObject(const int& idObject, map<CStdString
 	}
 
 	return AddAttributesForObject(idObject, newAttributes);
+}
+
+void CObjectDatabase::DeleteAttributesForObject(int idObject)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+		if (idObject < 0)
+		{
+				return;
+		}
+
+
+		strSQL=PrepareSQL("delete from attributes where idObject=%i", idObject);
+		m_pDS->exec(strSQL.c_str());
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to deleteobjectattributes (%s)", __FUNCTION__, strSQL.c_str());
+	}
 }
 
 bool CObjectDatabase::SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute)
@@ -1064,6 +1213,29 @@ int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, i
 			CLog::Log(LOGERROR, "%s unable to linkobject (%s)", __FUNCTION__, strSQL.c_str());
 		}
 		return -1;
+}
+
+void CObjectDatabase::DeleteObjectLinks(int idObject)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+		if (idObject < 0)
+		{
+				return;
+		}
+
+
+		strSQL=PrepareSQL("delete from relationships where idObject1=%i or idObject2=%i", idObject, idObject);
+		m_pDS->exec(strSQL.c_str());
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to deleteobjectlinks (%s)", __FUNCTION__, strSQL.c_str());
+	}
 }
 
 bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
