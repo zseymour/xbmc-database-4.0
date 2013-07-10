@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "utils/StdString.h"
-#include "Profile.h"
 
 class CBookmark
 {
@@ -41,12 +40,12 @@ public:
   bool IsPartWay() const;
 
   int idDirent;
+  int idProfile;
   double timeInSeconds;
   double totalTimeInSeconds;
   CStdString thumbNailImage;
   CStdString playerState;
   CStdString player;
-  CProfile profile;
 
 
   enum EType
