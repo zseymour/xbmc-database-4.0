@@ -712,7 +712,7 @@ void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject)
 	}
 	catch (...)
 	{
-
+		CLog::Log(LOGERROR, "%s unable to deleteobject (%s)", __FUNCTION__, strSQL.c_str());
 	}
 }
 
@@ -1317,7 +1317,7 @@ int CObjectDatabase::GetProfileId(CStdString name)
 
 		m_pDS->query(strSQL.c_str());
 		if (!m_pDS->eof())
-			idProfile = m_pDS->fv("idRelationship").get_asInt();
+			idProfile = m_pDS->fv("idProfile").get_asInt();
 
 		m_pDS->close();
 		return idProfile;
@@ -1565,5 +1565,194 @@ void CObjectDatabase::ClearBookMarksOfFile(const CStdString& strFilenameAndPath,
     CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
   }
 }
+
+void CObjectDatabase::SetStreamDetailsForFileId(const CStdString detailsXML, int idFile)
+{
+	 try
+	  {
+	    if (idFile < 0) return ;
+	    if (NULL == m_pDB.get()) return ;
+	    if (NULL == m_pDS.get()) return ;
+
+	    CStdString strSQL=PrepareSQL("update dirents set streams='%s' where idDirent=%i", detailsXML.c_str(), idFile);
+	    m_pDS->exec(strSQL.c_str());
+	  }
+	  catch (...)
+	  {
+	    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, detailsXML.c_str());
+	  }
+}
+
+void CObjectDatabase::SetStreamDetailsForFileId(const CStreamDetails& details, int idFile)
+{
+	TiXmlDocument doc;
+
+	TiXmlElement * root = new TiXmlElement( "streams" );
+	doc.LinkEndChild( root );
+
+	for(int i=1; i<=details.GetVideoStreamCount(); i++)
+	{
+		TiXmlElement * stream = new TiXmlElement( "stream" );
+		root->LinkEndChild( stream );
+
+		XMLUtils::SetInt(stream, "type", (int)CStreamDetail::VIDEO);
+		XMLUtils::SetString(stream, "videoCodec", details.GetVideoCodec(i));
+		XMLUtils::SetFloat(stream, "videoAspect", details.GetVideoAspect(i));
+		XMLUtils::SetInt(stream, "videoWidth", details.GetVideoWidth(i));
+		XMLUtils::SetInt(stream, "videoHeight", details.GetVideoHeight(i));
+		XMLUtils::SetInt(stream, "videoDuration", details.GetVideoDuration(i));
+	}
+	for (int i=1; i<=details.GetAudioStreamCount(); i++)
+	{
+		TiXmlElement * stream = new TiXmlElement( "stream" );
+		root->LinkEndChild( stream );
+
+		XMLUtils::SetInt(stream, "type", (int)CStreamDetail::AUDIO);
+		XMLUtils::SetString(stream, "audioCodec", details.GetAudioCodec(i));
+		XMLUtils::SetInt(stream, "audioChannels", details.GetAudioChannels(i));
+		XMLUtils::SetString(stream, "audioLanguage", details.GetAudioLanguage(i));
+	}
+	for (int i=1; i<=details.GetSubtitleStreamCount(); i++)
+	{
+		TiXmlElement * stream = new TiXmlElement( "stream" );
+		root->LinkEndChild( stream );
+
+		XMLUtils::SetInt(stream, "type", (int)CStreamDetail::SUBTITLE);
+		XMLUtils::SetString(stream, "subtitleLanguage", details.GetSubtitleLanguage(i));
+	}
+
+	TiXmlPrinter printer;
+	printer.SetLineBreak("\n");
+	printer.SetIndent("  ");
+	doc.Accept(&printer);
+	//CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
+
+	SetStreamDetailsForFileId(printer.CStr(), idFile);
+}
+
+bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
+{
+	CStdString strSQL;
+	bool retValue = false;
+		try
+		{
+			CStdString strSettings;
+			if (idFile < 0) return false;
+			if (NULL == m_pDB.get()) return false;
+			if (NULL == m_pDS.get()) return false;
+
+			strSQL = PrepareSQL("SELECT streams FROM dirents WHERE idDirent=%i", idFile);
+
+			m_pDS->query(strSQL.c_str());
+			if (!m_pDS->eof())
+				strSettings = m_pDS->fv("streams").get_asString();
+			m_pDS->close();
+
+			if(!strSettings)
+			{
+				CLog::Log(LOGERROR, "Unable to load stream settings for dirent %i", idFile);
+				return false;
+			}
+
+			CXBMCTinyXML detailsXML;
+
+			detailsXML.Parse(strSettings);
+
+			TiXmlNode *root = detailsXML.RootElement();
+
+
+			//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
+			if (root && strcmp(root->ValueStr().c_str(), "streams") == 0)
+			{
+				CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
+				TiXmlPrinter printer;
+				printer.SetLineBreak("\n");
+				printer.SetIndent("  ");
+				detailsXML.Accept(&printer);
+				CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
+
+				TiXmlNode *stream = root->FirstChild("stream");
+				CStdString id;
+				for(stream; stream; stream=stream->NextSibling("stream"))
+				{
+					int type;
+					CStreamDetail::StreamType e;
+					if(XMLUtils::GetInt(stream, "type", type, 0, 2))
+						 e = (CStreamDetail::StreamType)type;
+					else
+						continue;
+
+					CLog::Log(LOGNOTICE, "Stream type is %i", type);
+
+					switch (e) {
+					case CStreamDetail::StreamType::VIDEO:
+					{
+						CStreamDetailVideo *vp = new CStreamDetailVideo();
+						XMLUtils::GetString(stream, "videoCodec", vp->m_strCodec);
+						XMLUtils::GetFloat(stream, "videoAspect", vp->m_fAspect);
+						XMLUtils::GetInt(stream, "videoWidth", vp->m_iWidth);
+						XMLUtils::GetInt(stream, "videoHeight", vp->m_iHeight);
+						XMLUtils::GetInt(stream, "videoDuration", vp->m_iDuration);
+						details.AddStream(vp);
+						retValue = true;
+						break;
+					}
+					case CStreamDetail::StreamType::AUDIO:
+					{
+						CStreamDetailAudio *ap = new CStreamDetailAudio();
+						XMLUtils::GetString(stream, "audioCodec", ap->m_strCodec);
+						XMLUtils::GetInt(stream, "audioChannels", ap->m_iChannels);
+						XMLUtils::GetString(stream, "audioLanguage", ap->m_strLanguage);
+						details.AddStream(ap);
+						retValue = true;
+						break;
+					}
+					case CStreamDetail::StreamType::SUBTITLE:
+					{
+						CStreamDetailSubtitle *sp = new CStreamDetailSubtitle();
+						XMLUtils::GetString(stream, "subtitleLanguage", sp->m_strLanguage);
+						details.AddStream(sp);
+						retValue = true;
+						break;
+					}
+					}
+
+
+				}
+			}
+			else
+			{
+				CLog::Log(LOGERROR, "Improperly formatted XML %s", strSettings.c_str());
+				return false;
+			}
+
+		}
+		catch (...)
+		{
+			CLog::Log(LOGERROR, "%s unable to getstreamdetails (%s)", __FUNCTION__, strSQL.c_str());
+		}
+
+		details.DetermineBestStreams();
+
+		return retValue;
+}
+
+//CStdString CObjectDatabase::ExtractStreamDetail(TiXmlNode *rootNode, CStdString id)
+//{
+//	TiXmlNode *stream = rootNode->FirstChild("stream");
+//	CStdString value;
+//	CStdString thisId;
+//	for(stream; stream; stream=stream->NextSibling("stream"))
+//	{
+//		thisId = stream->ToElement()->Attribute( "id" );
+//		if(thisId == id)
+//		{
+//			value = stream->ToElement()->Attribute("value");
+//			break;
+//		}
+//	}
+//
+//	return value;
+//}
 
 

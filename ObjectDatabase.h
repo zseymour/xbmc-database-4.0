@@ -12,6 +12,9 @@
 #include "utils/StdString.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/StreamDetails.h"
+#include "utils/XBMCTinyXML.h"
+#include "utils/XMLUtils.h"
 #include "Bookmark.h"
 
 #include <memory>
@@ -58,12 +61,14 @@ public:
 	bool GetParentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllDescendentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllAncestorObjectTypes(int idObjectType, std::vector<int>& ids);
+
 	bool GetAllAttributeTypesForObjectType(int idObjectType, std::vector<CAttributeType>& types);
 	bool GetAllAttributeTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
 	bool GetAllArtworkTypesForObjectType(int idObjectType, std::vector<int>& ids);
 
 	int AddObjectType(int idParentObjectType,const CStdString& stub,const CStdString& name);
 	int GetObjectTypeId(const CStdString& stub);
+	void DeleteObjectType(int idObjectType);
 
 	int AddAttributeType(int idObjectType, CStdString& stub, CStdString& name, int dataType = 0, int dataPrecision = 0, int inheritable = 0);
 	int GetAttributeTypeId(const CStdString& stub);
@@ -117,6 +122,12 @@ public:
 	void AddBookMarkToFile(const CStdString& strFilenameAndPath, int idProfile, const CBookmark &bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
 	void ClearBookMarkOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark& bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
 	void ClearBookMarksOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark::EType type /*= CBookmark::STANDARD*/);
+
+//	void SetStreamDetailsForFile(const CStreamDetails& details, const CStdString &strFileNameAndPath);
+	void SetStreamDetailsForFileId(const CStreamDetails& details, int idFile);
+	void SetStreamDetailsForFileId(const CStdString detailsXML, int idFile);
+	bool GetStreamDetails(CStreamDetails& details, int idFile);
+	CStdString ExtractStreamDetail(TiXmlNode *rootNode, CStdString id);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
