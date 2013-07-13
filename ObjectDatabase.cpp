@@ -1630,6 +1630,14 @@ void CObjectDatabase::SetStreamDetailsForFileId(const CStreamDetails& details, i
 	SetStreamDetailsForFileId(printer.CStr(), idFile);
 }
 
+void CObjectDatabase::SetStreamDetailsForFile(const CStreamDetails& details, const CStdString &strFileNameAndPath)
+{
+	int idFile = AddDirEnt(strFileNameAndPath);
+	if(idFile < 0) return;
+
+	SetStreamDetailsForFileId(details, idFile);
+}
+
 bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
 {
 	CStdString strSQL;
@@ -1737,22 +1745,168 @@ bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
 		return retValue;
 }
 
-//CStdString CObjectDatabase::ExtractStreamDetail(TiXmlNode *rootNode, CStdString id)
-//{
-//	TiXmlNode *stream = rootNode->FirstChild("stream");
-//	CStdString value;
-//	CStdString thisId;
-//	for(stream; stream; stream=stream->NextSibling("stream"))
-//	{
-//		thisId = stream->ToElement()->Attribute( "id" );
-//		if(thisId == id)
-//		{
-//			value = stream->ToElement()->Attribute("value");
-//			break;
-//		}
-//	}
-//
-//	return value;
-//}
+
+void CObjectDatabase::SetVideoSettingsForFile(const CVideoSettings& settings, const CStdString &strFileNameAndPath)
+{
+	int idFile = AddDirEnt(strFileNameAndPath);
+		if(idFile < 0) return;
+
+		SetVideoSettingsForFileId(settings, idFile);
+}
+
+void CObjectDatabase::SetVideoSettingsForFileId(const CVideoSettings& settings, int idFile)
+{
+	TiXmlDocument doc;
+
+	TiXmlElement * root = new TiXmlElement( "settings" );
+	doc.LinkEndChild( root );
+
+	XMLUtils::SetInt(root, "viewmode", settings.m_ViewMode);
+	XMLUtils::SetFloat(root, "zoomamount", settings.m_CustomZoomAmount);
+	XMLUtils::SetFloat(root, "pixelratio", settings.m_CustomPixelRatio);
+	XMLUtils::SetInt(root, "audiostream", settings.m_AudioStream);
+	XMLUtils::SetInt(root, "subtitlestream", settings.m_SubtitleStream);
+	XMLUtils::SetFloat(root, "subtitledelay", settings.m_SubtitleDelay);
+	XMLUtils::SetBoolean(root, "subtitleson", settings.m_SubtitleOn);
+	XMLUtils::SetFloat(root, "brightness", settings.m_Brightness);
+	XMLUtils::SetFloat(root, "contrast", settings.m_Contrast);
+	XMLUtils::SetFloat(root, "gamma", settings.m_Gamma);
+	XMLUtils::SetFloat(root, "volumeamplification", settings.m_VolumeAmplification);
+	XMLUtils::SetFloat(root, "audiodelay", settings.m_AudioDelay);
+	XMLUtils::SetBoolean(root, "outputtoallspeakers", settings.m_OutputToAllSpeakers);
+	XMLUtils::SetBoolean(root, "crop", settings.m_Crop);
+	XMLUtils::SetInt(root, "cropbottom", settings.m_CropBottom);
+	XMLUtils::SetInt(root, "croptop", settings.m_CropTop);
+	XMLUtils::SetInt(root, "cropleft", settings.m_CropLeft);
+	XMLUtils::SetInt(root, "cropright", settings.m_CropRight);
+	XMLUtils::SetFloat(root, "sharpness", settings.m_Sharpness);
+	XMLUtils::SetFloat(root, "noisereduction", settings.m_NoiseReduction);
+	XMLUtils::SetBoolean(root, "nonlinstretch", settings.m_CustomNonLinStretch);
+	XMLUtils::SetFloat(root, "verticalshift", settings.m_CustomVerticalShift);
+	XMLUtils::SetInt(root, "deinterlacemode", (int)settings.m_DeinterlaceMode);
+	XMLUtils::SetInt(root, "interlacemethod", (int)settings.m_InterlaceMethod);
+	XMLUtils::SetInt(root, "scalingmethod", (int)settings.m_ScalingMethod);
+
+	TiXmlPrinter printer;
+	printer.SetLineBreak("\n");
+	printer.SetIndent("  ");
+	doc.Accept(&printer);
+
+	SetVideoSettingsForFileId(printer.CStr(), idFile);
+}
+
+void CObjectDatabase::SetVideoSettingsForFileId(const CStdString settingsXML, int idFile)
+{
+	try
+	{
+		if (idFile < 0) return ;
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+
+		CStdString strSQL=PrepareSQL("update dirents set settings='%s' where idDirent=%i", settingsXML.c_str(), idFile);
+		m_pDS->exec(strSQL.c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, settingsXML.c_str());
+	}
+}
+
+bool CObjectDatabase::GetVideoSettings(CVideoSettings& settings, int idFile)
+{
+	CStdString strSQL;
+	bool retValue = false;
+	try
+	{
+		CStdString strSettings;
+		if (idFile < 0) return false;
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL = PrepareSQL("SELECT settings FROM dirents WHERE idDirent=%i", idFile);
+
+		m_pDS->query(strSQL.c_str());
+		if (!m_pDS->eof())
+			strSettings = m_pDS->fv("settings").get_asString();
+		m_pDS->close();
+
+		if(!strSettings)
+		{
+			CLog::Log(LOGERROR, "Unable to load video settings for dirent %i", idFile);
+			return false;
+		}
+
+		CXBMCTinyXML settingsXML;
+
+		settingsXML.Parse(strSettings);
+
+		TiXmlNode *root = settingsXML.RootElement();
+
+
+		//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
+		if (root && strcmp(root->ValueStr().c_str(), "settings") == 0)
+		{
+			CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
+			TiXmlPrinter printer;
+			printer.SetLineBreak("\n");
+			printer.SetIndent("  ");
+			settingsXML.Accept(&printer);
+			CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
+
+
+			XMLUtils::GetInt(root, "viewmode", settings.m_ViewMode);
+			XMLUtils::GetFloat(root, "zoomamount", settings.m_CustomZoomAmount);
+			XMLUtils::GetFloat(root, "pixelratio", settings.m_CustomPixelRatio);
+			XMLUtils::GetInt(root, "audiostream", settings.m_AudioStream);
+			XMLUtils::GetInt(root, "subtitlestream", settings.m_SubtitleStream);
+			XMLUtils::GetFloat(root, "subtitledelay", settings.m_SubtitleDelay);
+			XMLUtils::GetBoolean(root, "subtitleson", settings.m_SubtitleOn);
+			XMLUtils::GetFloat(root, "brightness", settings.m_Brightness);
+			XMLUtils::GetFloat(root, "contrast", settings.m_Contrast);
+			XMLUtils::GetFloat(root, "gamma", settings.m_Gamma);
+			XMLUtils::GetFloat(root, "volumeamplification", settings.m_VolumeAmplification);
+			XMLUtils::GetFloat(root, "audiodelay", settings.m_AudioDelay);
+			XMLUtils::GetBoolean(root, "outputtoallspeakers", settings.m_OutputToAllSpeakers);
+			XMLUtils::GetBoolean(root, "crop", settings.m_Crop);
+			XMLUtils::GetInt(root, "cropbottom", settings.m_CropBottom);
+			XMLUtils::GetInt(root, "croptop", settings.m_CropTop);
+			XMLUtils::GetInt(root, "cropleft", settings.m_CropLeft);
+			XMLUtils::GetInt(root, "cropright", settings.m_CropRight);
+			XMLUtils::GetFloat(root, "sharpness", settings.m_Sharpness);
+			XMLUtils::GetFloat(root, "noisereduction", settings.m_NoiseReduction);
+			XMLUtils::GetBoolean(root, "nonlinstretch", settings.m_CustomNonLinStretch);
+			XMLUtils::GetFloat(root, "verticalshift", settings.m_CustomVerticalShift);
+
+			int deinterlacemode;
+			XMLUtils::GetInt(root, "deinterlacemode", deinterlacemode);
+			settings.m_DeinterlaceMode = (EDEINTERLACEMODE)deinterlacemode;
+
+			int interlace;
+			XMLUtils::GetInt(root, "interlacemethod", interlace);
+			settings.m_InterlaceMethod = (EINTERLACEMETHOD)interlace;
+
+			int scaling;
+			XMLUtils::GetInt(root, "scalingmethod", scaling);
+			settings.m_ScalingMethod = (ESCALINGMETHOD)scaling;
+
+			settings.m_SubtitleCached = false;
+
+			retValue = true;
+		}
+		else
+		{
+			CLog::Log(LOGERROR, "Improperly formatted XML %s", strSettings.c_str());
+			return false;
+		}
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getvideosettings (%s)", __FUNCTION__, strSQL.c_str());
+	}
+
+
+	return retValue;
+}
 
 

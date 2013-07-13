@@ -15,6 +15,7 @@
 #include "utils/StreamDetails.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
+#include "settings/VideoSettings.h"
 #include "Bookmark.h"
 
 #include <memory>
@@ -123,11 +124,15 @@ public:
 	void ClearBookMarkOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark& bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
 	void ClearBookMarksOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark::EType type /*= CBookmark::STANDARD*/);
 
-//	void SetStreamDetailsForFile(const CStreamDetails& details, const CStdString &strFileNameAndPath);
+	void SetStreamDetailsForFile(const CStreamDetails& details, const CStdString &strFileNameAndPath);
 	void SetStreamDetailsForFileId(const CStreamDetails& details, int idFile);
 	void SetStreamDetailsForFileId(const CStdString detailsXML, int idFile);
 	bool GetStreamDetails(CStreamDetails& details, int idFile);
-	CStdString ExtractStreamDetail(TiXmlNode *rootNode, CStdString id);
+
+	void SetVideoSettingsForFile(const CVideoSettings& settings, const CStdString &strFileNameAndPath);
+	void SetVideoSettingsForFileId(const CVideoSettings& settings, int idFile);
+	void SetVideoSettingsForFileId(const CStdString settingsXML, int idFile);
+	bool GetVideoSettings(CVideoSettings& settings, int idFile);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
