@@ -84,6 +84,7 @@ public:
 	int GetScraperId(const CStdString& scraper);
 	bool LinkScraperToPath(int& idScraper, int& idPath);
 	bool LinkScraperToPath(CStdString& scraper, CStdString& path);
+	bool ScraperInUse(const int idScraper);
 
 	int AddDirEnt(const CStdString& strFileNameAndPath);
 
@@ -152,6 +153,8 @@ private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };
 	virtual int GetMinVersion() const;
+	virtual bool CreateTables();
+	virtual void CreateViews();
 	bool isValidAttributeType(int idObject, int idAttributeType);
 	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
 	bool isValidArtworkType(int idObject, int idArtworkType);

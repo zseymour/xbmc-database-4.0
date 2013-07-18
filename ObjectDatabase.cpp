@@ -35,6 +35,290 @@ bool CObjectDatabase::Open()
   return CDatabase::Open(settings);
 }
 
+bool CObjectDatabase::CreateTables()
+{
+	BeginTransaction();
+	try
+	{
+		CDatabase::CreateTables();
+		CLog::Log(LOGINFO, "create object types table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS objectTypes (\n"
+				"  idObjectType        INTEGER       NOT NULL  PRIMARY KEY  AUTOINCREMENT,\n"
+				"  idParentObjectType  INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"  stub                VARCHAR(128)  NOT NULL ,\n"
+				"  name                TEXT\n"
+				")");
+
+		CLog::Log(LOGINFO, "create attribute types table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS attributeTypes (\n"
+				"  idAttributeType  INTEGER       NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
+				"  idObjectType     INTEGER       NOT NULL ,\n"
+				"  stub             VARCHAR(128)  NOT NULL ,\n"
+				"  name             TEXT          NOT NULL ,\n"
+				"  dataType         INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"  dataPrecision    INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"  inheritable      INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"\n"
+				"  FOREIGN KEY (idObjectType) REFERENCES objectTypes (idObjectType)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create relationship types table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS relationshipTypes (\n"
+				"  idRelationshipType  INTEGER       NOT NULL  PRIMARY KEY  AUTOINCREMENT ,\n"
+				"  stub                VARCHAR(128)  NOT NULL ,\n"
+				"  idObjectType1       INTEGER       NOT NULL ,\n"
+				"  idObjectType2       INTEGER       NOT NULL ,\n"
+				"  inheritableType1    INTEGER       NOT NULL  DEFAULT 0,\n"
+				"  inheritableType2    INTEGER       NOT NULL  DEFAULT 0,\n"
+				"  sequenced           INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"\n"
+				"  FOREIGN KEY (idObjectType1) REFERENCES objectTypes(idObjectType) ,\n"
+				"  FOREIGN KEY (idObjectType2) REFERENCES objectTypes(idObjectType)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create artwork types table");
+		m_pDS->exec("CREATE TABLE IF NOT EXISTS artworkTypes (\n"
+				"  idArtworkType INTEGER       NOT NULL PRIMARY KEY AUTOINCREMENT ,\n"
+				"  idObjectType  INTEGER       NOT NULL ,\n"
+				"  stub          VARCHAR(128)  NOT NULL ,\n"
+				"  name          TEXT          NOT NULL ,\n"
+				"  inheritable   INTEGER       NOT NULL DEFAULT 0,\n"
+				"\n"
+				"  FOREIGN KEY (idObjectType) REFERENCES objectTypes(idObjectType)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create objects table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS objects (\n"
+				"  idObject      INTEGER       NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
+				"  idObjectType  INTEGER       NOT NULL ,\n"
+				"  stub          VARCHAR(128)  NOT NULL ,\n"
+				"  name          TEXT          NOT NULL ,\n"
+				"         \n"
+				"  FOREIGN KEY (idObjectType) REFERENCES objectTypes(idObjectType)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create attributes table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS attributes (\n"
+				"  idAttribute      INTEGER       NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
+				"  idObject         INTEGER       NOT NULL ,\n"
+				"  idAttributeType  INTEGER       NOT NULL ,\n"
+				"  valueString      TEXT          NULL  DEFAULT \"\" ,\n"
+				"  valueNumber      INTEGER       NULL  DEFAULT 0 ,\n"
+				"  valueBlob        BLOB          NULL ,\n"
+				"\n"
+				"  FOREIGN KEY (idObject) REFERENCES objects(idObject) ,\n"
+				"  FOREIGN KEY (idAttributeType) REFERENCES attributeTypes(idAttributeType)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create relationships table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS relationships (\n"
+				"  idRelationship      INTEGER       NOT NULL  PRIMARY KEY  AUTOINCREMENT ,\n"
+				"  idObject1           INTEGER       NOT NULL ,\n"
+				"  idObject2           INTEGER       NOT NULL ,\n"
+				"  idRelationshipType  INTEGER       NOT NULL ,\n"
+				"  link                TEXT          NULL      DEFAULT NULL,-- used for actor roles\n"
+				"  sequenceIndex       INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"           \n"
+				"  FOREIGN KEY (idObject1) REFERENCES objects(idObject) ,\n"
+				"  FOREIGN KEY (idObject2) REFERENCES objects(idObject) ,\n"
+				"  FOREIGN KEY (idRelationshipType) REFERENCES relationshipTypes(idRelationshipType)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create artwork table");
+		m_pDS->exec("CREATE TABLE IF NOT EXISTS artwork (\n"
+				"  idArtwork          INTEGER       NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
+				"  idArtworkType      INTEGER       NOT NULL ,\n"
+				"  idObject           INTEGER       NOT NULL ,\n"
+				"  width              INTEGER       NOT NULL ,\n"
+				"  height             INTEGER       NOT NULL ,\n"
+				"  lastUpdated  VARCHAR(24)  NULL      DEFAULT NULL,\n"
+				"  url                TEXT ,\n"
+				"  thumb              BLOB, -- cached image content\n"
+				"\n"
+				"  FOREIGN KEY (idArtworkType) REFERENCES artworkTypes(idArtworkType),\n"
+				"  FOREIGN KEY (idObject) REFERENCES objects(idObject)\n"
+				");");
+
+		CLog::Log(LOGINFO, "create queries table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS queries (\n"
+				"  idQuery     INTEGER     NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
+				"  stub        TEXT        NOT NULL ,\n"
+				"  locked      INTEGER     NOT NULL  DEFAULT 0 ,\n"
+				"  query       TEXT        NOT NULL\n"
+				");");
+
+		CLog::Log(LOGINFO, "create dirents table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS dirents (\n"
+				"  idDirent     INTEGER       NOT NULL  PRIMARY KEY  AUTOINCREMENT,\n"
+				"  idPath       INTEGER       NOT NULL ,\n"
+				"  filename     TEXT          NOT NULL ,\n"
+				"  url          TEXT          NULL ,\n"
+				"  fileLength   INTEGER       NOT NULL  DEFAULT 0 ,\n"
+				"  fileHash     VARCHAR(32)   NULL ,\n"
+				"  contentHash  VARCHAR(32)   NULL ,\n"
+				"  settings     TEXT          NULL ,\n"
+				"  streams      TEXT          NULL ,\n"
+				"\n"
+				"  FOREIGN KEY (idPath) REFERENCES paths(idPath)\n"
+				");");
+		m_pDS->exec("CREATE INDEX ixDPath ON dirents(idPath);");
+		m_pDS->exec("CREATE INDEX ixDPathFilename ON dirents(idPath ASC, filename ASC);");
+
+		CLog::Log(LOGINFO, "create objectlinkdirent table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS objectlinkdirent (\n"
+				"  idDirent  INTEGER  NOT NULL ,\n"
+				"  idObject  INTEGER  NOT NULL ,\n"
+				"\n"
+				"  FOREIGN KEY (idDirent) REFERENCES dirents(idDirent) ,\n"
+				"  FOREIGN KEY (idObject) REFERENCES objects(idObject)\n"
+				");");
+		m_pDS->exec("CREATE INDEX ixOLDDirent ON objectlinkdirent(idDirent)");
+		m_pDS->exec("CREATE INDEX ixOLDObject ON objectlinkdirent(idObject)");
+
+		CLog::Log(LOGINFO, "create path table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS paths (\n"
+				"  idPath          INTEGER      NOT NULL  PRIMARY KEY   AUTOINCREMENT ,\n"
+				"  idParent        INTEGER      NOT NULL  DEFAULT 0 ,\n"
+				"  path            TEXT         NULL      DEFAULT NULL ,\n"
+				"  hash            VARCHAR(32)  NULL      DEFAULT NULL ,\n"
+				"  noUpdate        INTEGER      NULL      DEFAULT NULL\n"
+				");");
+		CLog::Log(LOGINFO, "create scrapers table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS pathlinkscraper (\n"
+				"  idPath  INTEGER  NOT NULL ,\n"
+				"  idScraper  INTEGER  NOT NULL ,\n"
+				"\n"
+				"  FOREIGN KEY (idPath) REFERENCES paths(idPath) ,\n"
+				"  FOREIGN KEY (idScraper) REFERENCES scrapers(idScraper)\n"
+				");");
+		m_pDS->exec("CREATE INDEX ixPLSpath ON pathlinkscraper(idPath);");
+		m_pDS->exec("CREATE INDEX ixPLSscraper ON pathlinkscraper(idScraper);");
+
+		CLog::Log(LOGINFO, "create profile table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS profile (\n"
+				"  idProfile  INTEGER  NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
+				"  name       TEXT     NOT NULL\n"
+				");");
+
+		CLog::Log(LOGINFO, "create bookmark table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS bookmark (\n"
+				"  idBookmark          INTEGER NOT NULL  PRIMARY KEY   AUTOINCREMENT ,\n"
+				"  idDirent            INTEGER NOT NULL ,\n"
+				"  idProfile           INTEGER NOT NULL ,\n"
+				"  timeInSeconds       DOUBLE  NULL      DEFAULT NULL ,\n"
+				"  totalTimeInSeconds  DOUBLE  NULL      DEFAULT NULL ,\n"
+				"  thumbnailImage      TEXT    NULL      DEFAULT NULL ,\n"
+				"  player              TEXT    NULL      DEFAULT NULL ,\n"
+				"  playerState         TEXT    NULL      DEFAULT NULL ,\n"
+				"  type                INTEGER NULL      DEFAULT NULL ,\n"
+				"\n"
+				"  FOREIGN KEY (idDirent) REFERENCES dirents(idDirent) ,\n"
+				"  FOREIGN KEY (idProfile) REFERENCES profiles(idProfile)\n"
+				");");
+		m_pDS->exec("CREATE INDEX ixBDirent ON bookmark(idDirent);");
+		m_pDS->exec("CREATE INDEX ixBProfile ON bookmark(idProfile);");
+
+		CLog::Log(LOGINFO, "create settings table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS settings (\n"
+				"  idProfile   INTEGER      NOT NULL ,\n"
+				"  idObject    INTEGER      NOT NULL ,\n"
+				"  playCount   INTEGER      NULL      DEFAULT NULL ,\n"
+				"  lastPlayed  VARCHAR(24)  NULL      DEFAULT NULL\n"
+				");");
+		m_pDS->exec("CREATE INDEX ixSProfileObject ON settings (idProfile ASC, idObject ASC);");
+		m_pDS->exec("CREATE INDEX ixSObjectProfile ON settings (idObject ASC, idProfile ASC);");
+
+		CLog::Log(LOGINFO, "create stacktimes table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS stacktimes (\n"
+				"  idDirent  INTEGER  NULL  DEFAULT NULL ,\n"
+				"  times     TEXT     NULL  DEFAULT NULL ,\n"
+				"\n"
+				"  FOREIGN KEY (idDirent) REFERENCES dirents(idDirent)\n"
+				");");
+		m_pDS->exec("CREATE INDEX ixSTDirent ON stacktimes (idDirent ASC);");
+
+		CLog::Log(LOGINFO, "create version table");
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS version (\n"
+				"  contentRevision       INTEGER  NULL  DEFAULT NULL ,\n"
+				"  contentCompressCount  INTEGER  NULL  DEFAULT NULL\n"
+				");");
+
+		CreateViews();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to create tables", __FUNCTION__);
+		RollbackTransaction();
+		return false;
+	}
+	CommitTransaction();
+	return true;
+}
+
+void CObjectDatabase::CreateViews()
+{
+	CLog::Log(LOGINFO, "create relationship view");
+	m_pDS->exec("CREATE VIEW viewRelationshipsAll\n"
+			"AS\n"
+			"SELECT  o1.idObject        AS o1ID,\n"
+			"        o1.stub            AS o1Stub,\n"
+			"        IFNULL(o1.name,\n"
+			"               o1.stub)    AS o1Name,\n"
+			"        o1.idObjectType    AS o1TypeID,\n"
+			"        ot1.name           AS o1TypeName ,\n"
+			"        o2.idObject        AS o2ID,\n"
+			"        o2.stub            AS o2Stub,\n"
+			"        IFNULL(o2.name,\n"
+			"               o2.stub)    AS o2Name,\n"
+			"        o2.idObjectType    AS o2TypeID,\n"
+			"        ot2.name           AS o2TypeName,\n"
+			"        rt.stub            AS rtName,\n"
+			"	r.link             AS link,\n"
+			"        r.sequenceIndex    AS seqIndex\n"
+			"FROM    objects o1\n"
+			"INNER JOIN\n"
+			"        objectTypes ot1\n"
+			"ON      o1.idObjectType=ot1.idObjectType\n"
+			"INNER JOIN\n"
+			"        relationships r\n"
+			"ON      o1.idObject=r.idObject1\n"
+			"INNER JOIN\n"
+			"        objects o2\n"
+			"ON      o2.idObject=r.idObject2\n"
+			"INNER JOIN\n"
+			"        objectTypes ot2\n"
+			"ON      o2.idObjectType=ot2.idObjectType\n"
+			"INNER JOIN\n"
+			"        relationshipTypes rt\n"
+			"ON      r.idRelationshipType=rt.idRelationshipType;");
+
+	CLog::Log(LOGINFO, "create objectdirent view");
+	m_pDS->exec("CREATE VIEW viewObjectDirentAll\n"
+			"AS \n"
+			"SELECT DISTINCT o.idObject         AS oID,\n"
+			"       o.stub             AS oStub,\n"
+			"       IFNULL(o.name,\n"
+			"               o.stub)    AS oName,\n"
+			"       p.path             AS pPath,\n"
+			"       d.filename	  AS dFileName,\n"
+			"       IFNULL(d.filename,\n"
+			"               d.url)     AS dUrl,\n"
+			"       d.settings         AS dSettings\n"
+			"FROM\n"
+			"       objects o\n"
+			"INNER JOIN\n"
+			"       objectlinkdirent old\n"
+			"ON     \n"
+			"       o.idObject=old.idObject\n"
+			"INNER JOIN\n"
+			"       dirents d\n"
+			"ON\n"
+			"       old.idDirent=d.idDirent\n"
+			"INNER JOIN\n"
+			"       paths p\n"
+			"ON\n"
+			"       d.idPath=p.idPath;");
+}
 
 
 bool CObjectDatabase::GetChildObjectTypes(int idObjectType, std::vector<int>& ids)
@@ -598,6 +882,27 @@ bool CObjectDatabase::LinkScraperToPath(CStdString& scraper, CStdString& path)
 		return false;
 
 	return LinkScraperToPath(idScraper, idPath);
+}
+
+bool CObjectDatabase::ScraperInUse(const int idScraper)
+{
+	 try
+	  {
+	    if (NULL == m_pDB.get()) return false;
+	    if (NULL == m_pDS.get()) return false;
+
+	    CStdString sql = PrepareSQL("select count(1) from pathlinkscraper where idScraper=%i", idScraper);
+	    if (!m_pDS->query(sql.c_str()) || m_pDS->num_rows() == 0)
+	      return false;
+	    bool found = m_pDS->fv(0).get_asInt() > 0;
+	    m_pDS->close();
+	    return found;
+	  }
+	  catch (...)
+	  {
+	    CLog::Log(LOGERROR, "%s(%s) failed", __FUNCTION__, idScraper);
+	  }
+	  return false;
 }
 
 int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
