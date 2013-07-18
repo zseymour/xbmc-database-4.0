@@ -142,6 +142,7 @@ public:
 	void UpdateLastPlayed(const int idObject, const int idProfile);
 
 	bool HasContent(const int idObjectType);
+	int GetObjectTypeCount(const int idObjectType);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };

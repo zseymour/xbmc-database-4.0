@@ -2012,24 +2012,29 @@ void CObjectDatabase::UpdateLastPlayed(const int idObject, const int idProfile)
 
 bool CObjectDatabase::HasContent(const int idObjectType)
 {
-  bool result = false;
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+	return GetObjectTypeCount(idObjectType) > 0;
+}
 
-    CStdString sql = PrepareSQL("select count(1) from objects where idObjectType=%i", idObjectType);
-    m_pDS->query( sql.c_str() );
+int CObjectDatabase::GetObjectTypeCount(const int idObjectType)
+{
+	int result = 0;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-    if (!m_pDS->eof())
-      result = (m_pDS->fv(0).get_asInt() > 0);
+		CStdString sql = PrepareSQL("select count(1) from objects where idObjectType=%i", idObjectType);
+		m_pDS->query( sql.c_str() );
 
-    m_pDS->close();
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-  }
-  return result;
+		if (!m_pDS->eof())
+			result = m_pDS->fv(0).get_asInt();
+
+		m_pDS->close();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+	return result;
 }
 
