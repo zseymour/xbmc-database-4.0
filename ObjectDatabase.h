@@ -140,6 +140,8 @@ public:
 	void SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date = CDateTime());
 	void IncrementPlayCount(const int idObject, const int idProfile);
 	void UpdateLastPlayed(const int idObject, const int idProfile);
+
+	bool HasContent(const int idObjectType);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };

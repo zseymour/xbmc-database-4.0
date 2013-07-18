@@ -2010,3 +2010,26 @@ void CObjectDatabase::UpdateLastPlayed(const int idObject, const int idProfile)
   SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile), CDateTime::GetCurrentDateTime());
 }
 
+bool CObjectDatabase::HasContent(const int idObjectType)
+{
+  bool result = false;
+  try
+  {
+    if (NULL == m_pDB.get()) return false;
+    if (NULL == m_pDS.get()) return false;
+
+    CStdString sql = PrepareSQL("select count(1) from objects where idObjectType=%i", idObjectType);
+    m_pDS->query( sql.c_str() );
+
+    if (!m_pDS->eof())
+      result = (m_pDS->fv(0).get_asInt() > 0);
+
+    m_pDS->close();
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  return result;
+}
+
