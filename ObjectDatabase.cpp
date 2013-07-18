@@ -1393,6 +1393,7 @@ void CObjectDatabase::SetArtForItem(int idObject, const map<int, string> &art)
     SetArtForItem(idObject, i->first, i->second);
 }
 
+//This will need an update (or additional method) to set the artwork for a CTexture object
 void CObjectDatabase::SetArtForItem(int idObject, const int idArtworkType, const CStdString &url)
 {
 	try
