@@ -844,6 +844,58 @@ bool CObjectDatabase::GetObjectPath(int idObject, CStdString& strFileNameAndPath
 	return false;
 }
 
+bool CObjectDatabase::GetObjectByAttribute(CStdString attr, const int idAttributeType, std::vector<int>& object_ids)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+
+			CStdString strSQL=PrepareSQL("select idObject from attributes where idAttributeType=%i and valueString like '%%%s%%'", idAttributeType, attr);
+			m_pDS2->query(strSQL.c_str());
+			while (!m_pDS2->eof())
+			{
+				object_ids.push_back(m_pDS2->fv(0).get_asInt());
+				m_pDS2->next();
+			}
+			m_pDS2->close();
+			return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, attr.c_str());
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::GetObjectByAttribute(const int attr, const int idAttributeType, std::vector<int>& object_ids)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+
+		CStdString strSQL=PrepareSQL("select idObject from attributes where idAttributeType=%i and valueNumber=%i", idAttributeType, attr);
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			object_ids.push_back(m_pDS2->fv(0).get_asInt());
+			m_pDS2->next();
+		}
+		m_pDS2->close();
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, attr);
+	}
+
+	return false;
+}
+
 /**
  * Adds attributes for the given object
  * attributes is of the form

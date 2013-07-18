@@ -95,6 +95,8 @@ public:
 	int GetObjectType(int idObject);
 	int GetObjectId(CStdString strFileNameAndPath);
 	bool GetObjectPath(int idObject, CStdString& strFileNameAndPath);
+	bool GetObjectByAttribute(CStdString attr, const int idAttributeType, std::vector<int>& object_ids);
+	bool GetObjectByAttribute(const int attr, const int idAttributeType, std::vector<int>& object_ids);
 
 	bool AddAttributesForObject(const int& idObject, std::map<int, CAttribute> attributes);
 	bool AddAttributesForObject(const int& idObject, std::map<CStdString, CAttribute> attributes);
