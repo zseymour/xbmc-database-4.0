@@ -852,7 +852,7 @@ bool CObjectDatabase::GetObjectByAttribute(CStdString attr, const int idAttribut
 		if (NULL == m_pDS.get()) return false;
 
 
-			CStdString strSQL=PrepareSQL("select idObject from attributes where idAttributeType=%i and valueString like '%%%s%%'", idAttributeType, attr);
+			CStdString strSQL=PrepareSQL("select idObject from attributes where idAttributeType=%i and valueString like '%%%s%%'", idAttributeType, attr.c_str());
 			m_pDS2->query(strSQL.c_str());
 			while (!m_pDS2->eof())
 			{
@@ -1290,6 +1290,30 @@ void CObjectDatabase::DeleteObjectLinks(int idObject)
 	}
 }
 
+bool CObjectDatabase::isValidArtworkType(int idObject, int idArtworkType)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		int idObjectType = GetObjectType(idObject);
+		vector<int> artworkTypes;
+		if(GetAllArtworkTypeIDsForObjectType(idObjectType, artworkTypes))
+		{
+			return std::find(artworkTypes.begin(), artworkTypes.end(), idArtworkType) != artworkTypes.end();
+		}
+
+	}
+	catch(...)
+	{
+		CLog::Log(LOGERROR, "%s unable to checkvalidity (%s)", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
 bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
 {
 
@@ -1337,6 +1361,68 @@ CStdString CObjectDatabase::GetArtForItem(int idObject, const int &idArtworkType
 {
   CStdString query = PrepareSQL("SELECT url FROM artwork WHERE idObject=%i AND idArtworkType=%i", idObject, idArtworkType);
   return GetSingleValue(query, m_pDS2);
+}
+
+bool CObjectDatabase::GetArtForItem(int idObject, map<string, string> &art)
+{
+  try
+  {
+    if (NULL == m_pDB.get()) return false;
+    if (NULL == m_pDS2.get()) return false; // using dataset 2 as we're likely called in loops on dataset 1
+
+    CStdString sql = PrepareSQL("SELECT at.stub, a.url FROM artwork a JOIN artworkTypes at ON a.idArtworkType = at.idArtworkType WHERE idObject=%i", idObject);
+    m_pDS2->query(sql.c_str());
+    while (!m_pDS2->eof())
+    {
+      art.insert(make_pair(m_pDS2->fv(0).get_asString(), m_pDS2->fv(1).get_asString()));
+      m_pDS2->next();
+    }
+    m_pDS2->close();
+    return !art.empty();
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s(%d) failed", __FUNCTION__, idObject);
+  }
+  return false;
+}
+
+void CObjectDatabase::SetArtForItem(int idObject, const map<int, string> &art)
+{
+  for (map<int, string>::const_iterator i = art.begin(); i != art.end(); ++i)
+    SetArtForItem(idObject, i->first, i->second);
+}
+
+void CObjectDatabase::SetArtForItem(int idObject, const int idArtworkType, const CStdString &url)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+		if (!isValidArtworkType(idObject, idArtworkType)) return;
+
+		CStdString sql = PrepareSQL("SELECT idArtwork FROM artwork WHERE idObject=%i AND idArtworkType=%i", idObject, idArtworkType);
+		m_pDS->query(sql.c_str());
+		if (!m_pDS->eof())
+		{ // update
+			int artId = m_pDS->fv(0).get_asInt();
+			m_pDS->close();
+			sql = PrepareSQL("UPDATE artwork SET url='%s', lastUpdated='%s' where idArtwork=%d", url.c_str(), CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str(), artId);
+			m_pDS->exec(sql.c_str());
+		}
+		else
+		{ // insert
+			m_pDS->close();
+			sql = PrepareSQL("INSERT INTO artwork (idObject, idArtworkType, url, lastUpdated, width, height) VALUES (%i, %i, '%s', '%s', 0, 0)", idObject, idArtworkType, url.c_str(), CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str());
+			m_pDS->exec(sql.c_str());
+		}
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s(%d, %d, '%s') failed", __FUNCTION__, idObject, idArtworkType, url.c_str());
+	}
 }
 
 int CObjectDatabase::AddProfile(CStdString name)

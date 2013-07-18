@@ -114,6 +114,9 @@ public:
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
 	CStdString GetArtworkType(int idArtworkType);
 	CStdString GetArtForItem(int idObject, const int &idArtworkType);
+	bool GetArtForItem(int idObject, std::map<std::string, std::string> &art);
+	void SetArtForItem(int idObject, const int idArtworkType, const CStdString &url);
+	void SetArtForItem(int idObject, const std::map<int, std::string> &art);
 
 	int AddProfile(CStdString name);
 	int GetProfileId(CStdString name);
@@ -151,6 +154,7 @@ private:
 	virtual int GetMinVersion() const;
 	bool isValidAttributeType(int idObject, int idAttributeType);
 	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
+	bool isValidArtworkType(int idObject, int idArtworkType);
 };
 
 #endif /* OBJECTDATABASE_H_ */
