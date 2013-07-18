@@ -110,6 +110,8 @@ public:
 	void DeleteObjectLinks(int idObject);
 
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
+	CStdString GetArtworkType(int idArtworkType);
+	CStdString GetArtForItem(int idObject, const int &idArtworkType);
 
 	int AddProfile(CStdString name);
 	int GetProfileId(CStdString name);
@@ -133,6 +135,11 @@ public:
 	void SetVideoSettingsForFileId(const CVideoSettings& settings, int idFile);
 	void SetVideoSettingsForFileId(const CStdString settingsXML, int idFile);
 	bool GetVideoSettings(CVideoSettings& settings, int idFile);
+
+	int GetPlayCount(const int idObject, const int idProfile);
+	void SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date = CDateTime());
+	void IncrementPlayCount(const int idObject, const int idProfile);
+	void UpdateLastPlayed(const int idObject, const int idProfile);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "database"; };

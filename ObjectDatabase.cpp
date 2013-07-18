@@ -1253,7 +1253,7 @@ bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::v
 		if(GetAllAncestorObjectTypes(idObjectType,objectIds))
 		{
 
-			CStdString strSQL=PrepareSQL("select idArtworkType from attributeTypes where idObjectType IN (%s) AND inheritable = 1 OR idObjectType = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
+			CStdString strSQL=PrepareSQL("select idArtworkType from artworkTypes where idObjectType IN (%s) AND inheritable = 1 OR idObjectType = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
 			m_pDS2->query(strSQL.c_str());
 			while (!m_pDS2->eof())
 			{
@@ -1272,6 +1272,19 @@ bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::v
 	}
 
 	return false;
+}
+
+CStdString CObjectDatabase::GetArtworkType(int idArtworkType)
+{
+
+	CStdString strSQL=PrepareSQL("select stub from artworkTypes where idArtworkType=%i", idArtworkType);
+	return GetSingleValue(strSQL, m_pDS2);
+}
+
+CStdString CObjectDatabase::GetArtForItem(int idObject, const int &idArtworkType)
+{
+  CStdString query = PrepareSQL("SELECT url FROM artwork WHERE idObject=%i AND idArtworkType=%i", idObject, idArtworkType);
+  return GetSingleValue(query, m_pDS2);
 }
 
 int CObjectDatabase::AddProfile(CStdString name)
@@ -1909,4 +1922,91 @@ bool CObjectDatabase::GetVideoSettings(CVideoSettings& settings, int idFile)
 	return retValue;
 }
 
+int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
+{
+  if (idObject < 0 || idProfile < 0)
+    return 0;  // not in db, so not watched
+
+  try
+  {
+    // error!
+    if (NULL == m_pDB.get()) return -1;
+    if (NULL == m_pDS.get()) return -1;
+
+    CStdString strSQL = PrepareSQL("select playCount from settings WHERE idObject=%i AND idProfile=%i", idObject, idProfile);
+    int count = 0;
+    if (m_pDS->query(strSQL.c_str()))
+    {
+      // there should only ever be one row returned
+      if (m_pDS->num_rows() == 1)
+        count = m_pDS->fv(0).get_asInt();
+      m_pDS->close();
+    }
+    return count;
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  return -1;
+}
+
+void CObjectDatabase::SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date)
+{
+  if (idObject < 0 || idProfile < 0)
+    return;
+
+  // and mark as watched
+  try
+  {
+    if (NULL == m_pDB.get()) return ;
+    if (NULL == m_pDS.get()) return ;
+
+    CStdString strSQL;
+    if (count)
+    {
+      if (!date.IsValid())
+        strSQL = PrepareSQL("update settings set playCount=%i,lastPlayed='%s' where idObject=%i AND idProfile=%i", count, CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str(), idObject, idProfile);
+      else
+        strSQL = PrepareSQL("update settings set playCount=%i,lastPlayed='%s' where idObject=%i AND idProfile=%i", count, date.GetAsDBDateTime().c_str(), idObject, idProfile);
+    }
+    else
+    {
+      if (!date.IsValid())
+        strSQL = PrepareSQL("update settings set playCount=NULL,lastPlayed=NULL where idObject=%i and idProfile=%i", idObject, idProfile);
+      else
+        strSQL = PrepareSQL("update settings set playCount=NULL,lastPlayed='%s' where idObject=%i and idProfile=%i", date.GetAsDBDateTime().c_str(), idObject, idProfile);
+    }
+
+    m_pDS->exec(strSQL.c_str());
+
+    // We only need to announce changes to video items in the library
+//    if (item.HasVideoInfoTag() && item.GetVideoInfoTag()->m_iDbId > 0)
+//    {
+//      // Only provide the "playcount" value if it has actually changed
+//      if (item.GetVideoInfoTag()->m_playCount != count)
+//      {
+//        CVariant data;
+//        data["playcount"] = count;
+//        ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", CFileItemPtr(new CFileItem(item)), data);
+//      }
+//      else
+//        ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", CFileItemPtr(new CFileItem(item)));
+//    }
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+}
+
+void CObjectDatabase::IncrementPlayCount(const int idObject, const int idProfile)
+{
+  SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile) + 1);
+}
+
+void CObjectDatabase::UpdateLastPlayed(const int idObject, const int idProfile)
+{
+  SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile), CDateTime::GetCurrentDateTime());
+}
 
