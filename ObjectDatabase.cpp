@@ -27,12 +27,12 @@ CObjectDatabase::~CObjectDatabase()
 
 int CObjectDatabase::GetMinVersion() const
 {
-  return 4;
+	return 4;
 }
 
 bool CObjectDatabase::Open()
 {
-  return CDatabase::Open(settings);
+	return CDatabase::Open(settings);
 }
 
 bool CObjectDatabase::CreateTables()
@@ -244,6 +244,7 @@ bool CObjectDatabase::CreateTables()
 				");");
 
 		CreateViews();
+		InsertDefaults();
 	}
 	catch (...)
 	{
@@ -320,121 +321,469 @@ void CObjectDatabase::CreateViews()
 			"       d.idPath=p.idPath;");
 }
 
+void CObjectDatabase::InsertDefaults()
+{
+	CStdString sql;
+
+	CLog::Log(LOGINFO, "inserting object types");
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJECT, 0, "object", "Object");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", CONTENT, OBJECT, "content", "Content");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", VIDEO, CONTENT, "video", "Videos");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", MOVIE, VIDEO, "movie", "Movies");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", TVSHOW, VIDEO, "tvshow", "TV Shows");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", MUSICVIDEO, VIDEO, "musicvideo", "Music Videos");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", EPISODE, VIDEO, "episode", "Episodes");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", SONG, CONTENT, "song", "Songs");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", PICTURE, OBJECT, "picture", "Pictures");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", ORGANISATION, OBJECT, "organisation", "Organisation");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", PERSON, ORGANISATION, "person", "People");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", ACTOR, PERSON, "actor", "Actors");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+				"VALUES (%i, %i, '%s', '%s')", DIRECTOR, PERSON, "director", "Directors");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", WRITER, PERSON, "writer", "Writers");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", MUSICIAN, PERSON, "musician", "Musicians");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", BAND, ORGANISATION, "band", "Bands");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", STUDIO, ORGANISATION, "studio", "Studios");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", GROUPING, OBJECT, "grouping", "Grouping");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", MOVIESET, GROUPING, "movieset", "Movie Sets");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", SEASON, GROUPING, "season", "seasons");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", GENRE, GROUPING, "genre", "Genres");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", ALBUM, GROUPING, "album", "Albums");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", PLAYLIST, GROUPING, "playlist", "Playlists");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", TAG, GROUPING, "tag", "Tags");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", ADDON, OBJECT, "addon", "Addons");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", REPO, OBJECT, "repo", "Addon Repository");
+	m_pDS->exec(sql.c_str());
+
+	CLog::Log(LOGINFO, "inserting attribute types");
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", FILENAME, CONTENT, "filename",
+			"Filename", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RELEASEDATE, CONTENT, "released",
+			"Release Date", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RATING, CONTENT, "rating",
+			"Rating", NUMBER_ATTRIBUTE, -1, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINEID, VIDEO, "onlineid",
+			"Online ID", NUMBER_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", SUMMARY, VIDEO, "summary",
+			"Summary", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES, VIDEO, "votes",
+			"Online Rating Votes", NUMBER_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENTRATING, VIDEO, "contentrating",
+			"Content Rating", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINERATING, VIDEO, "onlinerating",
+			"onlinerating", NUMBER_ATTRIBUTE, -1, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TAGLINE, MOVIE, "tagline",
+			"Tagline", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOT, MOVIE, "plot",
+			"plot", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT, EPISODE, "plot",
+			"plot", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", HEIGHT, PICTURE, "height",
+			"Height", NUMBER_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", WIDTH, PICTURE, "width",
+			"Width", NUMBER_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_TYPE, ADDON, "type",
+			"Type", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_SUMMARY, ADDON, "summary",
+			"Summary", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_DESCRIPTION, ADDON, "description",
+			"Description", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_RATING, ADDON, "rating",
+			"Rating", NUMBER_ATTRIBUTE, -1, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_ID, ADDON, "addonid",
+			"Addon ID", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_VERSION, ADDON, "version",
+			"Version", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_AUTHOR, ADDON, "author",
+			"Author", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", REPO_ID, REPO, "addonid",
+			"Addon ID", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	CLog::Log(LOGINFO, "inserting relationship types");
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1) "
+			"VALUES (%i,%i, %i,'%s', %i)", OBJECT_HAS_TAG, OBJECT, TAG, "object_has_tag", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_GENRE, MOVIE, GENRE, "movie_has_genre");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_ACTOR, MOVIE, ACTOR, "movie_has_actor");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_STUDIO, MOVIE, STUDIO, "movie_has_studio");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_DIRECTOR, MOVIE, DIRECTOR, "movie_has_director");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_WRITER, MOVIE, WRITER, "movie_has_writer");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_GENRE, TVSHOW, GENRE, "tvshow_has_genre");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_ACTOR, TVSHOW, ACTOR, "tvshow_has_actor");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", TVSHOW_HAS_SEASON, TVSHOW, SEASON, "tvshow_has_season");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_STUDIO, TVSHOW, STUDIO, "tvshow_has_studio");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_ACTOR, EPISODE, ACTOR, "episode_has_actor");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_SONG, MUSICIAN, SONG, "musician_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", BAND_HAS_SONG, BAND, SONG, "band_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", BAND_HAS_MUSICIAN, BAND, MUSICIAN, "band_has_musician");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", SEASON_HAS_EPISODE, SEASON, EPISODE, "season_has_episode");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIESET_HAS_MOVIE, MOVIESET, MOVIE, "movieset_has_movie");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", ALBUM_HAS_STUDIO, ALBUM, STUDIO, "album_has_studio");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_SONG, ALBUM, SONG, "album_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", REPO_HAS_ADDON, REPO, ADDON, "repo_has_addon");
+	m_pDS->exec(sql.c_str());
+
+	CLog::Log(LOGINFO, "inserting artwork types");
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", THUMBNAIL, OBJECT, "thumb", "Thumbnail", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", FANART, OBJECT, "fanart", "Fanart", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", BANNER, VIDEO, "banner", "Banner", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", LANDSCAPE, VIDEO, "landscape", "landscape", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", CLEARLOGO, OBJECT, "clearlogo", "ClearLogo", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", CLEARART, VIDEO, "clearart", "ClearArt", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", DISCART, MOVIE, "discart", "Disc Art", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i)", CDART, ALBUM, "cdart", "CDArt", 1);
+	m_pDS->exec(sql.c_str());
+}
+
+
 
 bool CObjectDatabase::GetChildObjectTypes(int idObjectType, std::vector<int>& ids)
 {
 	try
-	  {
-	    if (NULL == m_pDB.get()) return false;
-	    if (NULL == m_pDS.get()) return false;
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-	    CStdString strSQL=PrepareSQL("select idObjectType from objectTypes where idParentObjectType=%i", idObjectType);
-	    m_pDS2->query(strSQL.c_str());
-	    while (!m_pDS2->eof())
-	    {
-	      ids.push_back(m_pDS2->fv(0).get_asInt());
-	      m_pDS2->next();
-	    }
+		CStdString strSQL=PrepareSQL("select idObjectType from objectTypes where idParentObjectType=%i", idObjectType);
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			ids.push_back(m_pDS2->fv(0).get_asInt());
+			m_pDS2->next();
+		}
 
-	    m_pDS2->close();
-	    return true;
-	  }
-	  catch (...)
-	  {
-	    CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
-	  }
+		m_pDS2->close();
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
 
-	  return false;
+	return false;
 }
 
 bool CObjectDatabase::GetAllDescendentObjectTypes(int idObjectType, std::vector<int>& ids)
 {
 	try
-		  {
-		    if (NULL == m_pDB.get()) return false;
-		    if (NULL == m_pDS.get()) return false;
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-		    std::vector<int> childIds;
-		    if(GetChildObjectTypes(idObjectType, childIds))
-		    {
-		    	while(!childIds.empty())
-		    	{
-		    		ids.insert(ids.end(),childIds.begin(),childIds.end());
-		    		std::vector<int> tempIds = childIds;
-		    		childIds.clear();
-		    		for(std::vector<int>::iterator it = tempIds.begin(); it != tempIds.end(); ++it)
-		    		{
-		    			GetChildObjectTypes(*it,childIds);
-		    		}
-		    	}
-		    	return true;
-		    }
+		std::vector<int> childIds;
+		if(GetChildObjectTypes(idObjectType, childIds))
+		{
+			while(!childIds.empty())
+			{
+				ids.insert(ids.end(),childIds.begin(),childIds.end());
+				std::vector<int> tempIds = childIds;
+				childIds.clear();
+				for(std::vector<int>::iterator it = tempIds.begin(); it != tempIds.end(); ++it)
+				{
+					GetChildObjectTypes(*it,childIds);
+				}
+			}
+			return true;
+		}
 
-		  }
-		  catch (...)
-		  {
-		    CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
-		  }
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
 
-		  return false;
+	return false;
 }
 
 bool CObjectDatabase::GetParentObjectTypes(int idObjectType, std::vector<int>& ids)
 {
 	try
-	  {
-	    if (NULL == m_pDB.get()) return false;
-	    if (NULL == m_pDS.get()) return false;
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-	    CStdString strSQL=PrepareSQL("select idParentObjectType from objectTypes where idObjectType=%i", idObjectType);
-	    m_pDS2->query(strSQL.c_str());
-	    while (!m_pDS2->eof())
-	    {
-	      ids.push_back(m_pDS2->fv(0).get_asInt());
-	      m_pDS2->next();
-	    }
+		CStdString strSQL=PrepareSQL("select idParentObjectType from objectTypes where idObjectType=%i", idObjectType);
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			ids.push_back(m_pDS2->fv(0).get_asInt());
+			m_pDS2->next();
+		}
 
-	    m_pDS2->close();
-	    return true;
-	  }
-	  catch (...)
-	  {
-	    CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
-	  }
+		m_pDS2->close();
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
 
-	  return false;
+	return false;
 }
 
 bool CObjectDatabase::GetAllAncestorObjectTypes(int idObjectType, std::vector<int>& ids)
 {
 	try
-		  {
-		    if (NULL == m_pDB.get()) return false;
-		    if (NULL == m_pDS.get()) return false;
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-		    std::vector<int> parentIds;
-		    if(GetParentObjectTypes(idObjectType, parentIds))
-		    {
-		    	while(!parentIds.empty())
-		    	{
-		    		ids.insert(ids.end(),parentIds.begin(),parentIds.end());
-		    		std::vector<int> tempIds = parentIds;
-		    		parentIds.clear();
-		    		for(std::vector<int>::iterator it = tempIds.begin(); it != tempIds.end(); ++it)
-		    		{
-		    			GetParentObjectTypes(*it,parentIds);
-		    		}
-		    	}
-		    	return true;
-		    }
+		std::vector<int> parentIds;
+		if(GetParentObjectTypes(idObjectType, parentIds))
+		{
+			while(!parentIds.empty())
+			{
+				ids.insert(ids.end(),parentIds.begin(),parentIds.end());
+				std::vector<int> tempIds = parentIds;
+				parentIds.clear();
+				for(std::vector<int>::iterator it = tempIds.begin(); it != tempIds.end(); ++it)
+				{
+					GetParentObjectTypes(*it,parentIds);
+				}
+			}
+			return true;
+		}
 
-		  }
-		  catch (...)
-		  {
-		    CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
-		  }
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
 
-		  return false;
+	return false;
 }
 
 bool CObjectDatabase::GetAllAttributeTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
@@ -521,35 +870,35 @@ bool CObjectDatabase::GetAllAttributeTypesForObjectType(int idObjectType, std::v
 bool CObjectDatabase::GetAllArtworkTypesForObjectType(int idObjectType, std::vector<int>& ids)
 {
 	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		std::vector<int> objectIds;
+
+
+
+		if(GetAllAncestorObjectTypes(idObjectType,objectIds))
 		{
-			if (NULL == m_pDB.get()) return false;
-			if (NULL == m_pDS.get()) return false;
 
-			std::vector<int> objectIds;
-
-
-
-			if(GetAllAncestorObjectTypes(idObjectType,objectIds))
+			CStdString strSQL=PrepareSQL("select idArtworkType from artworkTypes where idObjectType IN (%s) AND inheritable = 1 OR idObjectType = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
+			m_pDS2->query(strSQL.c_str());
+			while (!m_pDS2->eof())
 			{
-
-				CStdString strSQL=PrepareSQL("select idArtworkType from artworkTypes where idObjectType IN (%s) AND inheritable = 1 OR idObjectType = %i", StringUtils::Join(objectIds,",").c_str(),idObjectType);
-				m_pDS2->query(strSQL.c_str());
-				while (!m_pDS2->eof())
-				{
-					ids.push_back(m_pDS2->fv(0).get_asInt());
-					m_pDS2->next();
-				}
-
-				m_pDS2->close();
-				return true;
+				ids.push_back(m_pDS2->fv(0).get_asInt());
+				m_pDS2->next();
 			}
-		}
-		catch (...)
-		{
-			CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
-		}
 
-		return false;
+			m_pDS2->close();
+			return true;
+		}
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idObjectType);
+	}
+
+	return false;
 }
 
 
@@ -589,34 +938,34 @@ int CObjectDatabase::AddObjectType(int idParentObjectType,const CStdString& stub
 int CObjectDatabase::AddAttributeType(int idObjectType, CStdString& stub, CStdString& name, int dataType, int dataPrecision, int inheritable)
 {
 	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+		int idAttributeType = -1;
+		CStdString strSQL = PrepareSQL("SELECT idAttributeType FROM attributeTypes WHERE stub LIKE '%s' AND idObjectType = %i",stub.c_str(), idObjectType);
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() == 0)
 		{
-			if (NULL == m_pDB.get()) return -1;
-			if (NULL == m_pDS.get()) return -1;
-			int idAttributeType = -1;
-			CStdString strSQL = PrepareSQL("SELECT idAttributeType FROM attributeTypes WHERE stub LIKE '%s' AND idObjectType = %i",stub.c_str(), idObjectType);
-			m_pDS->query(strSQL.c_str());
-			if (m_pDS->num_rows() == 0)
-			{
-				m_pDS->close();
-				// doesnt exists, add it
-				strSQL=PrepareSQL("insert into attributeTypes (idAttributeType, idObjectType, stub, name, dataType, dataPrecision, inheritable) values( NULL, %i, '%s','%s', %i, %i, %i)", idObjectType, stub.c_str(), name.c_str(), dataType, dataPrecision, inheritable);
-				m_pDS->exec(strSQL.c_str());
-				idAttributeType = (int)m_pDS->lastinsertid();
-			}
-			else
-			{
-				idAttributeType = m_pDS->fv("idAttributeType").get_asInt();
-				m_pDS->close();
-			}
-
-			return idAttributeType;
+			m_pDS->close();
+			// doesnt exists, add it
+			strSQL=PrepareSQL("insert into attributeTypes (idAttributeType, idObjectType, stub, name, dataType, dataPrecision, inheritable) values( NULL, %i, '%s','%s', %i, %i, %i)", idObjectType, stub.c_str(), name.c_str(), dataType, dataPrecision, inheritable);
+			m_pDS->exec(strSQL.c_str());
+			idAttributeType = (int)m_pDS->lastinsertid();
 		}
-		catch (...)
+		else
 		{
-			CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, name.c_str() );
+			idAttributeType = m_pDS->fv("idAttributeType").get_asInt();
+			m_pDS->close();
 		}
 
-		return -1;
+		return idAttributeType;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, name.c_str() );
+	}
+
+	return -1;
 }
 
 int CObjectDatabase::GetObjectTypeId(const CStdString& stub)
@@ -671,158 +1020,158 @@ int CObjectDatabase::GetAttributeTypeId(const CStdString& stub)
 
 int CObjectDatabase::AddPath(const CStdString& strPath)
 {
-  CStdString strSQL;
-  try
-  {
-    int idPath = GetPathId(strPath);
-    if (idPath >= 0)
-      return idPath; // already have the path
+	CStdString strSQL;
+	try
+	{
+		int idPath = GetPathId(strPath);
+		if (idPath >= 0)
+			return idPath; // already have the path
 
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
 
-    CStdString strPath1(strPath);
-    if (URIUtils::IsStack(strPath) || strPath.Mid(0,6).Equals("rar://") || strPath.Mid(0,6).Equals("zip://"))
-      URIUtils::GetParentPath(strPath,strPath1);
+		CStdString strPath1(strPath);
+		if (URIUtils::IsStack(strPath) || strPath.Mid(0,6).Equals("rar://") || strPath.Mid(0,6).Equals("zip://"))
+			URIUtils::GetParentPath(strPath,strPath1);
 
-    URIUtils::AddSlashAtEnd(strPath1);
+		URIUtils::AddSlashAtEnd(strPath1);
 
-    int parentId = GetPathId(URIUtils::GetParentPath(strPath1));
-    if(parentId < 0)
-    	parentId = 0;
+		int parentId = GetPathId(URIUtils::GetParentPath(strPath1));
+		if(parentId < 0)
+			parentId = 0;
 
-    strSQL=PrepareSQL("insert into paths (idPath, idParent, path) values (NULL,%i,'%s')", parentId, strPath1.c_str());
-    m_pDS->exec(strSQL.c_str());
-    idPath = (int)m_pDS->lastinsertid();
-    return idPath;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s unable to addpath (%s)", __FUNCTION__, strSQL.c_str());
-  }
-  return -1;
+		strSQL=PrepareSQL("insert into paths (idPath, idParent, path) values (NULL,%i,'%s')", parentId, strPath1.c_str());
+		m_pDS->exec(strSQL.c_str());
+		idPath = (int)m_pDS->lastinsertid();
+		return idPath;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to addpath (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
 }
 
 int CObjectDatabase::GetPathId(const CStdString& strPath)
 {
-  CStdString strSQL;
-  try
-  {
-    int idPath=-1;
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+	CStdString strSQL;
+	try
+	{
+		int idPath=-1;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
 
-    CStdString strPath1(strPath);
-    if (URIUtils::IsStack(strPath) || strPath.Mid(0,6).Equals("rar://") || strPath.Mid(0,6).Equals("zip://"))
-      URIUtils::GetParentPath(strPath,strPath1);
+		CStdString strPath1(strPath);
+		if (URIUtils::IsStack(strPath) || strPath.Mid(0,6).Equals("rar://") || strPath.Mid(0,6).Equals("zip://"))
+			URIUtils::GetParentPath(strPath,strPath1);
 
-    URIUtils::AddSlashAtEnd(strPath1);
+		URIUtils::AddSlashAtEnd(strPath1);
 
-    strSQL=PrepareSQL("select idPath from paths where path='%s'",strPath1.c_str());
-    m_pDS->query(strSQL.c_str());
-    if (!m_pDS->eof())
-      idPath = m_pDS->fv("idPath").get_asInt();
+		strSQL=PrepareSQL("select idPath from paths where path='%s'",strPath1.c_str());
+		m_pDS->query(strSQL.c_str());
+		if (!m_pDS->eof())
+			idPath = m_pDS->fv("idPath").get_asInt();
 
-    m_pDS->close();
-    return idPath;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s unable to getpath (%s)", __FUNCTION__, strSQL.c_str());
-  }
-  return -1;
+		m_pDS->close();
+		return idPath;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getpath (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
 }
 
 bool CObjectDatabase::GetPathHash(const CStdString &path, CStdString &hash)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-    CStdString strSQL=PrepareSQL("select hash from paths where path='%s'", path.c_str());
-    m_pDS->query(strSQL.c_str());
-    if (m_pDS->num_rows() == 0)
-      return false;
-    hash = m_pDS->fv("hash").get_asString();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, path.c_str());
-  }
+		CStdString strSQL=PrepareSQL("select hash from paths where path='%s'", path.c_str());
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() == 0)
+			return false;
+		hash = m_pDS->fv("hash").get_asString();
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, path.c_str());
+	}
 
-  return false;
+	return false;
 }
 
 bool CObjectDatabase::SetPathHash(const CStdString &path, const CStdString &hash)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-    if (hash.IsEmpty())
-    { // this is an empty folder - we need only add it to the path table
-      // if the path actually exists
-//      if (!CDirectory::Exists(path))
-//        return false;
-    }
-    int idPath = AddPath(path);
-    if (idPath < 0) return false;
+		if (hash.IsEmpty())
+		{ // this is an empty folder - we need only add it to the path table
+			// if the path actually exists
+			//      if (!CDirectory::Exists(path))
+			//        return false;
+		}
+		int idPath = AddPath(path);
+		if (idPath < 0) return false;
 
-    CStdString strSQL=PrepareSQL("update paths set hash='%s' where idPath=%ld", hash.c_str(), idPath);
-    m_pDS->exec(strSQL.c_str());
+		CStdString strSQL=PrepareSQL("update paths set hash='%s' where idPath=%ld", hash.c_str(), idPath);
+		m_pDS->exec(strSQL.c_str());
 
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s, %s) failed", __FUNCTION__, path.c_str(), hash.c_str());
-  }
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s, %s) failed", __FUNCTION__, path.c_str(), hash.c_str());
+	}
 
-  return false;
+	return false;
 }
 
 void CObjectDatabase::SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName)
 {
-  if (URIUtils::IsStack(strFileNameAndPath) || strFileNameAndPath.Mid(0,6).Equals("rar://") || strFileNameAndPath.Mid(0,6).Equals("zip://"))
-  {
-    URIUtils::GetParentPath(strFileNameAndPath,strPath);
-    strFileName = strFileNameAndPath;
-  }
-  else if (URIUtils::IsPlugin(strFileNameAndPath))
-  {
-    CURL url(strFileNameAndPath);
-    strPath = url.GetWithoutFilename();
-    strFileName = strFileNameAndPath;
-  }
-  else
-    URIUtils::Split(strFileNameAndPath,strPath, strFileName);
+	if (URIUtils::IsStack(strFileNameAndPath) || strFileNameAndPath.Mid(0,6).Equals("rar://") || strFileNameAndPath.Mid(0,6).Equals("zip://"))
+	{
+		URIUtils::GetParentPath(strFileNameAndPath,strPath);
+		strFileName = strFileNameAndPath;
+	}
+	else if (URIUtils::IsPlugin(strFileNameAndPath))
+	{
+		CURL url(strFileNameAndPath);
+		strPath = url.GetWithoutFilename();
+		strFileName = strFileNameAndPath;
+	}
+	else
+		URIUtils::Split(strFileNameAndPath,strPath, strFileName);
 }
 
 int CObjectDatabase::AddScraper(const CStdString& scraper, const CStdString& content )
 {
 	CStdString strSQL;
-	  try
-	  {
-	    int idScraper = GetScraperId(scraper);
-	    if (idScraper >= 0)
-	      return idScraper; // already have the scraper
+	try
+	{
+		int idScraper = GetScraperId(scraper);
+		if (idScraper >= 0)
+			return idScraper; // already have the scraper
 
-	    if (NULL == m_pDB.get()) return -1;
-	    if (NULL == m_pDS.get()) return -1;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
 
-	    strSQL=PrepareSQL("insert into scrapers (scraper, content) values ('%s','%s')", scraper.c_str(), content.c_str());
-	    m_pDS->exec(strSQL.c_str());
-	    idScraper = (int)m_pDS->lastinsertid();
-	    return idScraper;
-	  }
-	  catch (...)
-	  {
-	    CLog::Log(LOGERROR, "%s unable to addscraper (%s)", __FUNCTION__, strSQL.c_str());
-	  }
-	  return -1;
+		strSQL=PrepareSQL("insert into scrapers (scraper, content) values ('%s','%s')", scraper.c_str(), content.c_str());
+		m_pDS->exec(strSQL.c_str());
+		idScraper = (int)m_pDS->lastinsertid();
+		return idScraper;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to addscraper (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
 }
 
 int CObjectDatabase::GetScraperId(const CStdString& scraper)
@@ -886,23 +1235,23 @@ bool CObjectDatabase::LinkScraperToPath(CStdString& scraper, CStdString& path)
 
 bool CObjectDatabase::ScraperInUse(const int idScraper)
 {
-	 try
-	  {
-	    if (NULL == m_pDB.get()) return false;
-	    if (NULL == m_pDS.get()) return false;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
 
-	    CStdString sql = PrepareSQL("select count(1) from pathlinkscraper where idScraper=%i", idScraper);
-	    if (!m_pDS->query(sql.c_str()) || m_pDS->num_rows() == 0)
-	      return false;
-	    bool found = m_pDS->fv(0).get_asInt() > 0;
-	    m_pDS->close();
-	    return found;
-	  }
-	  catch (...)
-	  {
-	    CLog::Log(LOGERROR, "%s(%s) failed", __FUNCTION__, idScraper);
-	  }
-	  return false;
+		CStdString sql = PrepareSQL("select count(1) from pathlinkscraper where idScraper=%i", idScraper);
+		if (!m_pDS->query(sql.c_str()) || m_pDS->num_rows() == 0)
+			return false;
+		bool found = m_pDS->fv(0).get_asInt() > 0;
+		m_pDS->close();
+		return found;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s(%s) failed", __FUNCTION__, idScraper);
+	}
+	return false;
 }
 
 int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
@@ -1157,15 +1506,15 @@ bool CObjectDatabase::GetObjectByAttribute(CStdString attr, const int idAttribut
 		if (NULL == m_pDS.get()) return false;
 
 
-			CStdString strSQL=PrepareSQL("select idObject from attributes where idAttributeType=%i and valueString like '%%%s%%'", idAttributeType, attr.c_str());
-			m_pDS2->query(strSQL.c_str());
-			while (!m_pDS2->eof())
-			{
-				object_ids.push_back(m_pDS2->fv(0).get_asInt());
-				m_pDS2->next();
-			}
-			m_pDS2->close();
-			return true;
+		CStdString strSQL=PrepareSQL("select idObject from attributes where idAttributeType=%i and valueString like '%%%s%%'", idAttributeType, attr.c_str());
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			object_ids.push_back(m_pDS2->fv(0).get_asInt());
+			m_pDS2->next();
+		}
+		m_pDS2->close();
+		return true;
 	}
 	catch (...)
 	{
@@ -1279,7 +1628,7 @@ void CObjectDatabase::DeleteAttributesForObject(int idObject)
 		if (NULL == m_pDS.get()) return ;
 		if (idObject < 0)
 		{
-				return;
+			return;
 		}
 
 
@@ -1391,41 +1740,41 @@ int CObjectDatabase::GetAttributeId(int idObject, int idAttributeType)
 bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 {
 	CStdString strSQL;
-		try
+	try
+	{
+
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL=PrepareSQL("SELECT * FROM attributes AS a INNER JOIN attributeTypes AS at ON a.idAttributeType = at.idAttributeType WHERE idAttribute=%i", idAttribute);
+		m_pDS2->query(strSQL.c_str());
+		if(!m_pDS2->eof())
 		{
+			CAttributeType t;
+			t.idAttributeType = m_pDS2->fv("at.idAttributeType").get_asInt();
+			t.idObjectType = m_pDS2->fv("at.idObjectType").get_asInt();
+			t.inheritable = m_pDS2->fv("at.inheritable").get_asBool();
+			t.name = m_pDS2->fv("at.name").get_asString();
+			t.stub = m_pDS2->fv("at.stub").get_asString();
+			t.type = ATTRIBUTE_DATA_TYPE(m_pDS2->fv("at.dataType").get_asInt());
+			t.precision = m_pDS2->fv("at.dataPrecision").get_asInt();
 
-			if (NULL == m_pDB.get()) return false;
-			if (NULL == m_pDS.get()) return false;
+			attribute.intValue = m_pDS2->fv("a.valueNumber").get_asInt();
+			attribute.strValue = m_pDS2->fv("a.valueString").get_asString();
+			attribute.type = t;
 
-			strSQL=PrepareSQL("SELECT * FROM attributes AS a INNER JOIN attributeTypes AS at ON a.idAttributeType = at.idAttributeType WHERE idAttribute=%i", idAttribute);
-			m_pDS2->query(strSQL.c_str());
-			if(!m_pDS2->eof())
-			{
-				CAttributeType t;
-				t.idAttributeType = m_pDS2->fv("at.idAttributeType").get_asInt();
-				t.idObjectType = m_pDS2->fv("at.idObjectType").get_asInt();
-				t.inheritable = m_pDS2->fv("at.inheritable").get_asBool();
-				t.name = m_pDS2->fv("at.name").get_asString();
-				t.stub = m_pDS2->fv("at.stub").get_asString();
-				t.type = ATTRIBUTE_DATA_TYPE(m_pDS2->fv("at.dataType").get_asInt());
-				t.precision = m_pDS2->fv("at.dataPrecision").get_asInt();
-
-				attribute.intValue = m_pDS2->fv("a.valueNumber").get_asInt();
-				attribute.strValue = m_pDS2->fv("a.valueString").get_asString();
-				attribute.type = t;
-
-				m_pDS2->close();
-				return true;
-			}
-
-
-
+			m_pDS2->close();
+			return true;
 		}
-		catch (...)
-		{
-			CLog::Log(LOGERROR, "%s unable to getattribute (%s)", __FUNCTION__, strSQL.c_str());
-		}
-		return false;
+
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getattribute (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return false;
 }
 
 bool CObjectDatabase::isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2)
@@ -1544,32 +1893,32 @@ int CObjectDatabase::GetRelationshipId(int idRelationshipType, int idObject1, in
 int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index)
 {
 	CStdString strSQL;
-		try
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		int idRelationship = GetRelationshipId(idRelationshipType, idObject1, idObject2, link, index);
+
+		if(idRelationship >= 0)
+			return idRelationship;
+
+
+		if(isValidRelationshipType(idRelationshipType, idObject1, idObject2))
 		{
-			if (NULL == m_pDB.get()) return -1;
-			if (NULL == m_pDS.get()) return -1;
+			strSQL=PrepareSQL("INSERT INTO relationships (idRelationshipType, idObject1, idObject2,link, sequenceIndex) VALUES (%i, %i, %i, '%s', %i)",idRelationshipType,idObject1,idObject2,link.c_str(),index);
+			m_pDS->exec(strSQL.c_str());
 
-			int idRelationship = GetRelationshipId(idRelationshipType, idObject1, idObject2, link, index);
-
-			if(idRelationship >= 0)
-				return idRelationship;
-
-
-			if(isValidRelationshipType(idRelationshipType, idObject1, idObject2))
-			{
-				strSQL=PrepareSQL("INSERT INTO relationships (idRelationshipType, idObject1, idObject2,link, sequenceIndex) VALUES (%i, %i, %i, '%s', %i)",idRelationshipType,idObject1,idObject2,link.c_str(),index);
-				m_pDS->exec(strSQL.c_str());
-
-				return m_pDS->lastinsertid();
-			}
-
-
+			return m_pDS->lastinsertid();
 		}
-		catch (...)
-		{
-			CLog::Log(LOGERROR, "%s unable to linkobject (%s)", __FUNCTION__, strSQL.c_str());
-		}
-		return -1;
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to linkobject (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
 }
 
 void CObjectDatabase::DeleteObjectLinks(int idObject)
@@ -1581,7 +1930,7 @@ void CObjectDatabase::DeleteObjectLinks(int idObject)
 		if (NULL == m_pDS.get()) return ;
 		if (idObject < 0)
 		{
-				return;
+			return;
 		}
 
 
@@ -1664,38 +2013,38 @@ CStdString CObjectDatabase::GetArtworkType(int idArtworkType)
 
 CStdString CObjectDatabase::GetArtForItem(int idObject, const int &idArtworkType)
 {
-  CStdString query = PrepareSQL("SELECT url FROM artwork WHERE idObject=%i AND idArtworkType=%i", idObject, idArtworkType);
-  return GetSingleValue(query, m_pDS2);
+	CStdString query = PrepareSQL("SELECT url FROM artwork WHERE idObject=%i AND idArtworkType=%i", idObject, idArtworkType);
+	return GetSingleValue(query, m_pDS2);
 }
 
 bool CObjectDatabase::GetArtForItem(int idObject, map<string, string> &art)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS2.get()) return false; // using dataset 2 as we're likely called in loops on dataset 1
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS2.get()) return false; // using dataset 2 as we're likely called in loops on dataset 1
 
-    CStdString sql = PrepareSQL("SELECT at.stub, a.url FROM artwork a JOIN artworkTypes at ON a.idArtworkType = at.idArtworkType WHERE idObject=%i", idObject);
-    m_pDS2->query(sql.c_str());
-    while (!m_pDS2->eof())
-    {
-      art.insert(make_pair(m_pDS2->fv(0).get_asString(), m_pDS2->fv(1).get_asString()));
-      m_pDS2->next();
-    }
-    m_pDS2->close();
-    return !art.empty();
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s(%d) failed", __FUNCTION__, idObject);
-  }
-  return false;
+		CStdString sql = PrepareSQL("SELECT at.stub, a.url FROM artwork a JOIN artworkTypes at ON a.idArtworkType = at.idArtworkType WHERE idObject=%i", idObject);
+		m_pDS2->query(sql.c_str());
+		while (!m_pDS2->eof())
+		{
+			art.insert(make_pair(m_pDS2->fv(0).get_asString(), m_pDS2->fv(1).get_asString()));
+			m_pDS2->next();
+		}
+		m_pDS2->close();
+		return !art.empty();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s(%d) failed", __FUNCTION__, idObject);
+	}
+	return false;
 }
 
 void CObjectDatabase::SetArtForItem(int idObject, const map<int, string> &art)
 {
-  for (map<int, string>::const_iterator i = art.begin(); i != art.end(); ++i)
-    SetArtForItem(idObject, i->first, i->second);
+	for (map<int, string>::const_iterator i = art.begin(); i != art.end(); ++i)
+		SetArtForItem(idObject, i->first, i->second);
 }
 
 //This will need an update (or additional method) to set the artwork for a CTexture object
@@ -1790,254 +2139,254 @@ int CObjectDatabase::GetProfileId(CStdString name)
 /// \retval Returns true if the stack times exist, false otherwise.
 bool CObjectDatabase::GetStackTimes(const CStdString &filePath, vector<int> &times)
 {
-  try
-  {
-    // obtain the FileID (if it exists)
-    int idFile = AddDirEnt(filePath);
-    if (idFile < 0) return false;
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-    // ok, now obtain the settings for this file
-    CStdString strSQL=PrepareSQL("select times from stacktimes where idDirent=%i\n", idFile);
-    m_pDS->query( strSQL.c_str() );
-    if (m_pDS->num_rows() > 0)
-    { // get the video settings info
-      CStdStringArray timeString;
-      int timeTotal = 0;
-      StringUtils::SplitString(m_pDS->fv("times").get_asString(), ",", timeString);
-      times.clear();
-      for (unsigned int i = 0; i < timeString.size(); i++)
-      {
-        times.push_back(atoi(timeString[i].c_str()));
-        timeTotal += atoi(timeString[i].c_str());
-      }
-      m_pDS->close();
-      return (timeTotal > 0);
-    }
-    m_pDS->close();
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-  }
-  return false;
+	try
+	{
+		// obtain the FileID (if it exists)
+		int idFile = AddDirEnt(filePath);
+		if (idFile < 0) return false;
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+		// ok, now obtain the settings for this file
+		CStdString strSQL=PrepareSQL("select times from stacktimes where idDirent=%i\n", idFile);
+		m_pDS->query( strSQL.c_str() );
+		if (m_pDS->num_rows() > 0)
+		{ // get the video settings info
+			CStdStringArray timeString;
+			int timeTotal = 0;
+			StringUtils::SplitString(m_pDS->fv("times").get_asString(), ",", timeString);
+			times.clear();
+			for (unsigned int i = 0; i < timeString.size(); i++)
+			{
+				times.push_back(atoi(timeString[i].c_str()));
+				timeTotal += atoi(timeString[i].c_str());
+			}
+			m_pDS->close();
+			return (timeTotal > 0);
+		}
+		m_pDS->close();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+	return false;
 }
 
 /// \brief Sets the stack times for a particular video file
 void CObjectDatabase::SetStackTimes(const CStdString& filePath, vector<int> &times)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
-    int idFile = AddDirEnt(filePath);
-    if (idFile < 0)
-      return;
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+		int idFile = AddDirEnt(filePath);
+		if (idFile < 0)
+			return;
 
-    // delete any existing items
-    m_pDS->exec( PrepareSQL("delete from stacktimes where idDirent=%i", idFile) );
+		// delete any existing items
+		m_pDS->exec( PrepareSQL("delete from stacktimes where idDirent=%i", idFile) );
 
-    // add the items
-    CStdString timeString;
-    timeString.Format("%i", times[0]);
-    for (unsigned int i = 1; i < times.size(); i++)
-    {
-      CStdString time;
-      time.Format(",%i", times[i]);
-      timeString += time;
-    }
-    m_pDS->exec( PrepareSQL("insert into stacktimes (idDirent,times) values (%i,'%s')\n", idFile, timeString.c_str()) );
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, filePath.c_str());
-  }
+		// add the items
+		CStdString timeString;
+		timeString.Format("%i", times[0]);
+		for (unsigned int i = 1; i < times.size(); i++)
+		{
+			CStdString time;
+			time.Format(",%i", times[i]);
+			timeString += time;
+		}
+		m_pDS->exec( PrepareSQL("insert into stacktimes (idDirent,times) values (%i,'%s')\n", idFile, timeString.c_str()) );
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, filePath.c_str());
+	}
 }
 
 void CObjectDatabase::GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend)
 {
-  try
-  {
-//    if (URIUtils::IsStack(strFilenameAndPath) && CFileItem(CStackDirectory::GetFirstStackedFile(strFilenameAndPath),false).IsDVDImage())
-//    {
-//      CStackDirectory dir;
-//      CFileItemList fileList;
-//      dir.GetDirectory(strFilenameAndPath, fileList);
-//      if (!bAppend)
-//        bookmarks.clear();
-//      for (int i = fileList.Size() - 1; i >= 0; i--) // put the bookmarks of the highest part first in the list
-//        GetBookMarksForFile(fileList[i]->GetPath(), bookmarks, type, true, (i+1));
-//    }
-//    else
-//    {
-      int idFile = AddDirEnt(strFilenameAndPath);
-      if (idFile < 0) return ;
-      if (!bAppend)
-        bookmarks.erase(bookmarks.begin(), bookmarks.end());
-      if (NULL == m_pDB.get()) return ;
-      if (NULL == m_pDS.get()) return ;
+	try
+	{
+		//    if (URIUtils::IsStack(strFilenameAndPath) && CFileItem(CStackDirectory::GetFirstStackedFile(strFilenameAndPath),false).IsDVDImage())
+		//    {
+		//      CStackDirectory dir;
+		//      CFileItemList fileList;
+		//      dir.GetDirectory(strFilenameAndPath, fileList);
+		//      if (!bAppend)
+		//        bookmarks.clear();
+		//      for (int i = fileList.Size() - 1; i >= 0; i--) // put the bookmarks of the highest part first in the list
+		//        GetBookMarksForFile(fileList[i]->GetPath(), bookmarks, type, true, (i+1));
+		//    }
+		//    else
+		//    {
+		int idFile = AddDirEnt(strFilenameAndPath);
+		if (idFile < 0) return ;
+		if (!bAppend)
+			bookmarks.erase(bookmarks.begin(), bookmarks.end());
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
 
-      CStdString strSQL=PrepareSQL("select * from bookmark where idDirent=%i and idProfile=%i and type=%i order by timeInSeconds", idFile, idProfile, (int)type);
-      m_pDS->query( strSQL.c_str() );
-      while (!m_pDS->eof())
-      {
-        CBookmark bookmark;
-        bookmark.timeInSeconds = m_pDS->fv("timeInSeconds").get_asDouble();
-        bookmark.totalTimeInSeconds = m_pDS->fv("totalTimeInSeconds").get_asDouble();
-        bookmark.thumbNailImage = m_pDS->fv("thumbnailImage").get_asString();
-        bookmark.playerState = m_pDS->fv("playerState").get_asString();
-        bookmark.player = m_pDS->fv("player").get_asString();
-        bookmark.type = type;
-        bookmarks.push_back(bookmark);
-        m_pDS->next();
-      }
-      //sort(bookmarks.begin(), bookmarks.end(), SortBookmarks);
-      m_pDS->close();
-//  }
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
-  }
+		CStdString strSQL=PrepareSQL("select * from bookmark where idDirent=%i and idProfile=%i and type=%i order by timeInSeconds", idFile, idProfile, (int)type);
+		m_pDS->query( strSQL.c_str() );
+		while (!m_pDS->eof())
+		{
+			CBookmark bookmark;
+			bookmark.timeInSeconds = m_pDS->fv("timeInSeconds").get_asDouble();
+			bookmark.totalTimeInSeconds = m_pDS->fv("totalTimeInSeconds").get_asDouble();
+			bookmark.thumbNailImage = m_pDS->fv("thumbnailImage").get_asString();
+			bookmark.playerState = m_pDS->fv("playerState").get_asString();
+			bookmark.player = m_pDS->fv("player").get_asString();
+			bookmark.type = type;
+			bookmarks.push_back(bookmark);
+			m_pDS->next();
+		}
+		//sort(bookmarks.begin(), bookmarks.end(), SortBookmarks);
+		m_pDS->close();
+		//  }
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+	}
 }
 
 bool CObjectDatabase::GetResumeBookMark(const CStdString& strFilenameAndPath, int idProfile, CBookmark &bookmark)
 {
-  VECBOOKMARKS bookmarks;
-  GetBookMarksForFile(strFilenameAndPath, idProfile, bookmarks, CBookmark::RESUME, false);
-  if (bookmarks.size() > 0)
-  {
-    bookmark = bookmarks[0];
-    return true;
-  }
-  return false;
+	VECBOOKMARKS bookmarks;
+	GetBookMarksForFile(strFilenameAndPath, idProfile, bookmarks, CBookmark::RESUME, false);
+	if (bookmarks.size() > 0)
+	{
+		bookmark = bookmarks[0];
+		return true;
+	}
+	return false;
 }
 
 void CObjectDatabase::DeleteResumeBookMark(const CStdString &strFilenameAndPath, int idProfile)
 {
-  if (!m_pDB.get() || !m_pDS.get())
-    return;
+	if (!m_pDB.get() || !m_pDS.get())
+		return;
 
-  int fileID = AddDirEnt(strFilenameAndPath);
-  if (fileID < -1)
-    return;
+	int fileID = AddDirEnt(strFilenameAndPath);
+	if (fileID < -1)
+		return;
 
-  try
-  {
-    CStdString sql = PrepareSQL("delete from bookmark where idDirent=%i and idProfile=%i and type=%i", fileID, idProfile, CBookmark::RESUME);
-    m_pDS->exec(sql.c_str());
-  }
-  catch(...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
-  }
+	try
+	{
+		CStdString sql = PrepareSQL("delete from bookmark where idDirent=%i and idProfile=%i and type=%i", fileID, idProfile, CBookmark::RESUME);
+		m_pDS->exec(sql.c_str());
+	}
+	catch(...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+	}
 }
 
 //********************************************************************************************************************************
 void CObjectDatabase::AddBookMarkToFile(const CStdString& strFilenameAndPath, int idProfile, const CBookmark &bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/)
 {
-  try
-  {
-    int idFile = AddDirEnt(strFilenameAndPath);
-    if (idFile < 0)
-      return;
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
+	try
+	{
+		int idFile = AddDirEnt(strFilenameAndPath);
+		if (idFile < 0)
+			return;
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
 
-    CStdString strSQL;
-    int idBookmark=-1;
-    if (type == CBookmark::RESUME) // get the same resume mark bookmark each time type
-    {
-      strSQL=PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i", idFile, idProfile, (int)type);
-    }
-    else if (type == CBookmark::STANDARD) // get the same bookmark again, and update. not sure here as a dvd can have same time in multiple places, state will differ thou
-    {
-      /* get a bookmark within the same time as previous */
-      double mintime = bookmark.timeInSeconds - 0.5f;
-      double maxtime = bookmark.timeInSeconds + 0.5f;
-      strSQL=PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i and (timeInSeconds between %f and %f) and playerState='%s'", idFile, idProfile, (int)type, mintime, maxtime, bookmark.playerState.c_str());
-    }
+		CStdString strSQL;
+		int idBookmark=-1;
+		if (type == CBookmark::RESUME) // get the same resume mark bookmark each time type
+		{
+			strSQL=PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i", idFile, idProfile, (int)type);
+		}
+		else if (type == CBookmark::STANDARD) // get the same bookmark again, and update. not sure here as a dvd can have same time in multiple places, state will differ thou
+		{
+			/* get a bookmark within the same time as previous */
+			double mintime = bookmark.timeInSeconds - 0.5f;
+			double maxtime = bookmark.timeInSeconds + 0.5f;
+			strSQL=PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i and (timeInSeconds between %f and %f) and playerState='%s'", idFile, idProfile, (int)type, mintime, maxtime, bookmark.playerState.c_str());
+		}
 
-    // update or insert depending if it existed before
-    if (idBookmark >= 0 )
-      strSQL=PrepareSQL("update bookmark set timeInSeconds = %f, totalTimeInSeconds = %f, thumbNailImage = '%s', player = '%s', playerState = '%s' where idBookmark = %i", bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), idBookmark);
-    else
-      strSQL=PrepareSQL("insert into bookmark (idBookmark, idDirent, idProfile, timeInSeconds, totalTimeInSeconds, thumbNailImage, player, playerState, type) values(NULL,%i,%i,%f,%f,'%s','%s','%s', %i)", idFile, idProfile, bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), (int)type);
+		// update or insert depending if it existed before
+		if (idBookmark >= 0 )
+			strSQL=PrepareSQL("update bookmark set timeInSeconds = %f, totalTimeInSeconds = %f, thumbNailImage = '%s', player = '%s', playerState = '%s' where idBookmark = %i", bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), idBookmark);
+		else
+			strSQL=PrepareSQL("insert into bookmark (idBookmark, idDirent, idProfile, timeInSeconds, totalTimeInSeconds, thumbNailImage, player, playerState, type) values(NULL,%i,%i,%f,%f,'%s','%s','%s', %i)", idFile, idProfile, bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), (int)type);
 
-    m_pDS->exec(strSQL.c_str());
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
-  }
+		m_pDS->exec(strSQL.c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+	}
 }
 
 void CObjectDatabase::ClearBookMarkOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark& bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/)
 {
-  try
-  {
-    int idFile = AddDirEnt(strFilenameAndPath);
-    if (idFile < 0) return ;
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
+	try
+	{
+		int idFile = AddDirEnt(strFilenameAndPath);
+		if (idFile < 0) return ;
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
 
-    /* a litle bit uggly, we clear first bookmark that is within one second of given */
-    /* should be no problem since we never add bookmarks that are closer than that   */
-    double mintime = bookmark.timeInSeconds - 0.5f;
-    double maxtime = bookmark.timeInSeconds + 0.5f;
-    CStdString strSQL = PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i and playerState like '%s' and player like '%s' and (timeInSeconds between %f and %f)", idFile, idProfile, type, bookmark.playerState.c_str(), bookmark.player.c_str(), mintime, maxtime);
+		/* a litle bit uggly, we clear first bookmark that is within one second of given */
+		/* should be no problem since we never add bookmarks that are closer than that   */
+		double mintime = bookmark.timeInSeconds - 0.5f;
+		double maxtime = bookmark.timeInSeconds + 0.5f;
+		CStdString strSQL = PrepareSQL("select idBookmark from bookmark where idDirent=%i and idProfile=%i and type=%i and playerState like '%s' and player like '%s' and (timeInSeconds between %f and %f)", idFile, idProfile, type, bookmark.playerState.c_str(), bookmark.player.c_str(), mintime, maxtime);
 
-    m_pDS->query( strSQL.c_str() );
-    if (m_pDS->num_rows() != 0)
-    {
-      int idBookmark = m_pDS->get_field_value("idBookmark").get_asInt();
-      strSQL=PrepareSQL("delete from bookmark where idBookmark=%i",idBookmark);
-      m_pDS->exec(strSQL.c_str());
+		m_pDS->query( strSQL.c_str() );
+		if (m_pDS->num_rows() != 0)
+		{
+			int idBookmark = m_pDS->get_field_value("idBookmark").get_asInt();
+			strSQL=PrepareSQL("delete from bookmark where idBookmark=%i",idBookmark);
+			m_pDS->exec(strSQL.c_str());
 
-    }
+		}
 
-    m_pDS->close();
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
-  }
+		m_pDS->close();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+	}
 }
 
 //********************************************************************************************************************************
 void CObjectDatabase::ClearBookMarksOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark::EType type /*= CBookmark::STANDARD*/)
 {
-  try
-  {
-    int idFile = AddDirEnt(strFilenameAndPath);
-    if (idFile < 0) return ;
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
+	try
+	{
+		int idFile = AddDirEnt(strFilenameAndPath);
+		if (idFile < 0) return ;
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
 
-    CStdString strSQL=PrepareSQL("delete from bookmark where idDirent=%i and idProfile=%i and type=%i", idFile, idProfile, (int)type);
-    m_pDS->exec(strSQL.c_str());
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
-  }
+		CStdString strSQL=PrepareSQL("delete from bookmark where idDirent=%i and idProfile=%i and type=%i", idFile, idProfile, (int)type);
+		m_pDS->exec(strSQL.c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
+	}
 }
 
 void CObjectDatabase::SetStreamDetailsForFileId(const CStdString detailsXML, int idFile)
 {
-	 try
-	  {
-	    if (idFile < 0) return ;
-	    if (NULL == m_pDB.get()) return ;
-	    if (NULL == m_pDS.get()) return ;
+	try
+	{
+		if (idFile < 0) return ;
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
 
-	    CStdString strSQL=PrepareSQL("update dirents set streams='%s' where idDirent=%i", detailsXML.c_str(), idFile);
-	    m_pDS->exec(strSQL.c_str());
-	  }
-	  catch (...)
-	  {
-	    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, detailsXML.c_str());
-	  }
+		CStdString strSQL=PrepareSQL("update dirents set streams='%s' where idDirent=%i", detailsXML.c_str(), idFile);
+		m_pDS->exec(strSQL.c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, detailsXML.c_str());
+	}
 }
 
 void CObjectDatabase::SetStreamDetailsForFileId(const CStreamDetails& details, int idFile)
@@ -2099,116 +2448,116 @@ bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
 {
 	CStdString strSQL;
 	bool retValue = false;
-		try
+	try
+	{
+		CStdString strSettings;
+		if (idFile < 0) return false;
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL = PrepareSQL("SELECT streams FROM dirents WHERE idDirent=%i", idFile);
+
+		m_pDS->query(strSQL.c_str());
+		if (!m_pDS->eof())
+			strSettings = m_pDS->fv("streams").get_asString();
+		m_pDS->close();
+
+		if(!strSettings)
 		{
-			CStdString strSettings;
-			if (idFile < 0) return false;
-			if (NULL == m_pDB.get()) return false;
-			if (NULL == m_pDS.get()) return false;
+			CLog::Log(LOGERROR, "Unable to load stream settings for dirent %i", idFile);
+			return false;
+		}
 
-			strSQL = PrepareSQL("SELECT streams FROM dirents WHERE idDirent=%i", idFile);
+		CXBMCTinyXML detailsXML;
 
-			m_pDS->query(strSQL.c_str());
-			if (!m_pDS->eof())
-				strSettings = m_pDS->fv("streams").get_asString();
-			m_pDS->close();
+		detailsXML.Parse(strSettings);
 
-			if(!strSettings)
+		TiXmlNode *root = detailsXML.RootElement();
+
+
+		//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
+		if (root && strcmp(root->ValueStr().c_str(), "streams") == 0)
+		{
+			CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
+			TiXmlPrinter printer;
+			printer.SetLineBreak("\n");
+			printer.SetIndent("  ");
+			detailsXML.Accept(&printer);
+			CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
+
+			TiXmlNode *stream = root->FirstChild("stream");
+			CStdString id;
+			for(stream; stream; stream=stream->NextSibling("stream"))
 			{
-				CLog::Log(LOGERROR, "Unable to load stream settings for dirent %i", idFile);
-				return false;
-			}
+				int type;
+				CStreamDetail::StreamType e;
+				if(XMLUtils::GetInt(stream, "type", type, 0, 2))
+					e = (CStreamDetail::StreamType)type;
+				else
+					continue;
 
-			CXBMCTinyXML detailsXML;
+				CLog::Log(LOGNOTICE, "Stream type is %i", type);
 
-			detailsXML.Parse(strSettings);
-
-			TiXmlNode *root = detailsXML.RootElement();
-
-
-			//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
-			if (root && strcmp(root->ValueStr().c_str(), "streams") == 0)
-			{
-				CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
-				TiXmlPrinter printer;
-				printer.SetLineBreak("\n");
-				printer.SetIndent("  ");
-				detailsXML.Accept(&printer);
-				CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
-
-				TiXmlNode *stream = root->FirstChild("stream");
-				CStdString id;
-				for(stream; stream; stream=stream->NextSibling("stream"))
+				switch (e) {
+				case CStreamDetail::StreamType::VIDEO:
 				{
-					int type;
-					CStreamDetail::StreamType e;
-					if(XMLUtils::GetInt(stream, "type", type, 0, 2))
-						 e = (CStreamDetail::StreamType)type;
-					else
-						continue;
-
-					CLog::Log(LOGNOTICE, "Stream type is %i", type);
-
-					switch (e) {
-					case CStreamDetail::StreamType::VIDEO:
-					{
-						CStreamDetailVideo *vp = new CStreamDetailVideo();
-						XMLUtils::GetString(stream, "videoCodec", vp->m_strCodec);
-						XMLUtils::GetFloat(stream, "videoAspect", vp->m_fAspect);
-						XMLUtils::GetInt(stream, "videoWidth", vp->m_iWidth);
-						XMLUtils::GetInt(stream, "videoHeight", vp->m_iHeight);
-						XMLUtils::GetInt(stream, "videoDuration", vp->m_iDuration);
-						details.AddStream(vp);
-						retValue = true;
-						break;
-					}
-					case CStreamDetail::StreamType::AUDIO:
-					{
-						CStreamDetailAudio *ap = new CStreamDetailAudio();
-						XMLUtils::GetString(stream, "audioCodec", ap->m_strCodec);
-						XMLUtils::GetInt(stream, "audioChannels", ap->m_iChannels);
-						XMLUtils::GetString(stream, "audioLanguage", ap->m_strLanguage);
-						details.AddStream(ap);
-						retValue = true;
-						break;
-					}
-					case CStreamDetail::StreamType::SUBTITLE:
-					{
-						CStreamDetailSubtitle *sp = new CStreamDetailSubtitle();
-						XMLUtils::GetString(stream, "subtitleLanguage", sp->m_strLanguage);
-						details.AddStream(sp);
-						retValue = true;
-						break;
-					}
-					}
-
-
+					CStreamDetailVideo *vp = new CStreamDetailVideo();
+					XMLUtils::GetString(stream, "videoCodec", vp->m_strCodec);
+					XMLUtils::GetFloat(stream, "videoAspect", vp->m_fAspect);
+					XMLUtils::GetInt(stream, "videoWidth", vp->m_iWidth);
+					XMLUtils::GetInt(stream, "videoHeight", vp->m_iHeight);
+					XMLUtils::GetInt(stream, "videoDuration", vp->m_iDuration);
+					details.AddStream(vp);
+					retValue = true;
+					break;
 				}
-			}
-			else
-			{
-				CLog::Log(LOGERROR, "Improperly formatted XML %s", strSettings.c_str());
-				return false;
-			}
+				case CStreamDetail::StreamType::AUDIO:
+				{
+					CStreamDetailAudio *ap = new CStreamDetailAudio();
+					XMLUtils::GetString(stream, "audioCodec", ap->m_strCodec);
+					XMLUtils::GetInt(stream, "audioChannels", ap->m_iChannels);
+					XMLUtils::GetString(stream, "audioLanguage", ap->m_strLanguage);
+					details.AddStream(ap);
+					retValue = true;
+					break;
+				}
+				case CStreamDetail::StreamType::SUBTITLE:
+				{
+					CStreamDetailSubtitle *sp = new CStreamDetailSubtitle();
+					XMLUtils::GetString(stream, "subtitleLanguage", sp->m_strLanguage);
+					details.AddStream(sp);
+					retValue = true;
+					break;
+				}
+				}
 
+
+			}
 		}
-		catch (...)
+		else
 		{
-			CLog::Log(LOGERROR, "%s unable to getstreamdetails (%s)", __FUNCTION__, strSQL.c_str());
+			CLog::Log(LOGERROR, "Improperly formatted XML %s", strSettings.c_str());
+			return false;
 		}
 
-		details.DetermineBestStreams();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getstreamdetails (%s)", __FUNCTION__, strSQL.c_str());
+	}
 
-		return retValue;
+	details.DetermineBestStreams();
+
+	return retValue;
 }
 
 
 void CObjectDatabase::SetVideoSettingsForFile(const CVideoSettings& settings, const CStdString &strFileNameAndPath)
 {
 	int idFile = AddDirEnt(strFileNameAndPath);
-		if(idFile < 0) return;
+	if(idFile < 0) return;
 
-		SetVideoSettingsForFileId(settings, idFile);
+	SetVideoSettingsForFileId(settings, idFile);
 }
 
 void CObjectDatabase::SetVideoSettingsForFileId(const CVideoSettings& settings, int idFile)
@@ -2368,90 +2717,90 @@ bool CObjectDatabase::GetVideoSettings(CVideoSettings& settings, int idFile)
 
 int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
 {
-  if (idObject < 0 || idProfile < 0)
-    return 0;  // not in db, so not watched
+	if (idObject < 0 || idProfile < 0)
+		return 0;  // not in db, so not watched
 
-  try
-  {
-    // error!
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+	try
+	{
+		// error!
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
 
-    CStdString strSQL = PrepareSQL("select playCount from settings WHERE idObject=%i AND idProfile=%i", idObject, idProfile);
-    int count = 0;
-    if (m_pDS->query(strSQL.c_str()))
-    {
-      // there should only ever be one row returned
-      if (m_pDS->num_rows() == 1)
-        count = m_pDS->fv(0).get_asInt();
-      m_pDS->close();
-    }
-    return count;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-  }
-  return -1;
+		CStdString strSQL = PrepareSQL("select playCount from settings WHERE idObject=%i AND idProfile=%i", idObject, idProfile);
+		int count = 0;
+		if (m_pDS->query(strSQL.c_str()))
+		{
+			// there should only ever be one row returned
+			if (m_pDS->num_rows() == 1)
+				count = m_pDS->fv(0).get_asInt();
+			m_pDS->close();
+		}
+		return count;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+	return -1;
 }
 
 void CObjectDatabase::SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date)
 {
-  if (idObject < 0 || idProfile < 0)
-    return;
+	if (idObject < 0 || idProfile < 0)
+		return;
 
-  // and mark as watched
-  try
-  {
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
+	// and mark as watched
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
 
-    CStdString strSQL;
-    if (count)
-    {
-      if (!date.IsValid())
-        strSQL = PrepareSQL("update settings set playCount=%i,lastPlayed='%s' where idObject=%i AND idProfile=%i", count, CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str(), idObject, idProfile);
-      else
-        strSQL = PrepareSQL("update settings set playCount=%i,lastPlayed='%s' where idObject=%i AND idProfile=%i", count, date.GetAsDBDateTime().c_str(), idObject, idProfile);
-    }
-    else
-    {
-      if (!date.IsValid())
-        strSQL = PrepareSQL("update settings set playCount=NULL,lastPlayed=NULL where idObject=%i and idProfile=%i", idObject, idProfile);
-      else
-        strSQL = PrepareSQL("update settings set playCount=NULL,lastPlayed='%s' where idObject=%i and idProfile=%i", date.GetAsDBDateTime().c_str(), idObject, idProfile);
-    }
+		CStdString strSQL;
+		if (count)
+		{
+			if (!date.IsValid())
+				strSQL = PrepareSQL("update settings set playCount=%i,lastPlayed='%s' where idObject=%i AND idProfile=%i", count, CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str(), idObject, idProfile);
+			else
+				strSQL = PrepareSQL("update settings set playCount=%i,lastPlayed='%s' where idObject=%i AND idProfile=%i", count, date.GetAsDBDateTime().c_str(), idObject, idProfile);
+		}
+		else
+		{
+			if (!date.IsValid())
+				strSQL = PrepareSQL("update settings set playCount=NULL,lastPlayed=NULL where idObject=%i and idProfile=%i", idObject, idProfile);
+			else
+				strSQL = PrepareSQL("update settings set playCount=NULL,lastPlayed='%s' where idObject=%i and idProfile=%i", date.GetAsDBDateTime().c_str(), idObject, idProfile);
+		}
 
-    m_pDS->exec(strSQL.c_str());
+		m_pDS->exec(strSQL.c_str());
 
-    // We only need to announce changes to video items in the library
-//    if (item.HasVideoInfoTag() && item.GetVideoInfoTag()->m_iDbId > 0)
-//    {
-//      // Only provide the "playcount" value if it has actually changed
-//      if (item.GetVideoInfoTag()->m_playCount != count)
-//      {
-//        CVariant data;
-//        data["playcount"] = count;
-//        ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", CFileItemPtr(new CFileItem(item)), data);
-//      }
-//      else
-//        ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", CFileItemPtr(new CFileItem(item)));
-//    }
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-  }
+		// We only need to announce changes to video items in the library
+		//    if (item.HasVideoInfoTag() && item.GetVideoInfoTag()->m_iDbId > 0)
+		//    {
+		//      // Only provide the "playcount" value if it has actually changed
+		//      if (item.GetVideoInfoTag()->m_playCount != count)
+		//      {
+		//        CVariant data;
+		//        data["playcount"] = count;
+		//        ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", CFileItemPtr(new CFileItem(item)), data);
+		//      }
+		//      else
+		//        ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", CFileItemPtr(new CFileItem(item)));
+		//    }
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
 }
 
 void CObjectDatabase::IncrementPlayCount(const int idObject, const int idProfile)
 {
-  SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile) + 1);
+	SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile) + 1);
 }
 
 void CObjectDatabase::UpdateLastPlayed(const int idObject, const int idProfile)
 {
-  SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile), CDateTime::GetCurrentDateTime());
+	SetPlayCount(idObject, idProfile, GetPlayCount(idObject, idProfile), CDateTime::GetCurrentDateTime());
 }
 
 bool CObjectDatabase::HasContent(const int idObjectType)
