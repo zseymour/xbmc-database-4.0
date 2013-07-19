@@ -17,6 +17,7 @@
 #include "utils/XMLUtils.h"
 #include "settings/VideoSettings.h"
 #include "Bookmark.h"
+#include "Attribute.h"
 
 #include <memory>
 #include <set>
@@ -27,12 +28,6 @@ namespace dbiplus
   class field_value;
   typedef std::vector<field_value> sql_record;
 }
-
-typedef enum {
-	STRING_ATTRIBUTE = 0,
-	NUMBER_ATTRIBUTE = 1,
-	BLOB_ATTRIBUTE = 2
-} ATTRIBUTE_DATA_TYPE;
 
 typedef enum
 {
@@ -132,24 +127,7 @@ enum ArtworkTypeID
 
 class CObjectDatabase: public CDatabase {
 public:
-	class CAttributeType
-	{
-	public:
-		int idAttributeType;
-		int idObjectType;
-		CStdString stub;
-		CStdString name;
-		ATTRIBUTE_DATA_TYPE type;
-		int precision;
-		bool inheritable;
-	};
-	class CAttribute
-	{
-	public:
-		CAttributeType type;
-		CStdString strValue;
-		int intValue;
-	};
+
 	CObjectDatabase();
 	virtual ~CObjectDatabase();
 	virtual bool Open();

@@ -1655,21 +1655,21 @@ bool CObjectDatabase::SetAttribute(const int idObject, CAttributeType attrType, 
 		case STRING_ATTRIBUTE:
 			if(idAttribute < 0)
 			{
-				strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueString) VALUES (%i, %i, '%s')",idObject, attrType.idAttributeType, attr.strValue.c_str());
+				strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueString) VALUES (%i, %i, '%s')",idObject, attrType.idAttributeType, attr.getStringValue().c_str());
 			}
 			else
 			{
-				strSQL=PrepareSQL("UPDATE attributes SET valueString='%s' WHERE idAttribute=%i", attr.strValue.c_str(), idAttribute);
+				strSQL=PrepareSQL("UPDATE attributes SET valueString='%s' WHERE idAttribute=%i", attr.getStringValue().c_str(), idAttribute);
 			}
 			break;
 		case NUMBER_ATTRIBUTE:
 			if(idAttribute < 0)
 			{
-				strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueNumber) VALUES (%i, %i, %i)",idObject, attrType.idAttributeType, attr.intValue);
+				strSQL=PrepareSQL("INSERT INTO attributes (idObject, idAttributeType, valueNumber) VALUES (%i, %i, %i)",idObject, attrType.idAttributeType, attr.getRawIntValue());
 			}
 			else
 			{
-				strSQL=PrepareSQL("UPDATE attributes SET valueNumber=%i WHERE idAttribute=%i", attr.intValue, idAttribute);
+				strSQL=PrepareSQL("UPDATE attributes SET valueNumber=%i WHERE idAttribute=%i", attr.getRawIntValue(), idAttribute);
 			}
 			break;
 		case BLOB_ATTRIBUTE:
@@ -1760,9 +1760,9 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 			t.type = ATTRIBUTE_DATA_TYPE(m_pDS2->fv("at.dataType").get_asInt());
 			t.precision = m_pDS2->fv("at.dataPrecision").get_asInt();
 
-			attribute.intValue = m_pDS2->fv("a.valueNumber").get_asInt();
-			attribute.strValue = m_pDS2->fv("a.valueString").get_asString();
-			attribute.type = t;
+			attribute.setNumericValue(m_pDS2->fv("a.valueNumber").get_asInt());
+			attribute.setStringValue(m_pDS2->fv("a.valueString").get_asString());
+			attribute.setType(t);
 
 			m_pDS2->close();
 			return true;
