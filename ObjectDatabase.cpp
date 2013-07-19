@@ -274,7 +274,8 @@ void CObjectDatabase::CreateViews()
 			"        o2.idObjectType    AS o2TypeID,\n"
 			"        ot2.name           AS o2TypeName,\n"
 			"        rt.stub            AS rtName,\n"
-			"	r.link             AS link,\n"
+			"        rt.idRelationshipType AS rtID,\n"
+			"	     r.link             AS link,\n"
 			"        r.sequenceIndex    AS seqIndex\n"
 			"FROM    objects o1\n"
 			"INNER JOIN\n"
@@ -1942,6 +1943,50 @@ void CObjectDatabase::DeleteObjectLinks(int idObject)
 	{
 		CLog::Log(LOGERROR, "%s unable to deleteobjectlinks (%s)", __FUNCTION__, strSQL.c_str());
 	}
+}
+
+bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position, bool sort)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+
+		switch (position) {
+			case FIRST_OBJECT:
+				strSQL = PrepareSQL("select seqIndex, o2ID from viewRelationshipsAll where o1ID=%i and rtID=%i", idObject, idRelationshipType);
+				break;
+			case SECOND_OBJECT:
+				strSQL = PrepareSQL("select seqIndex, o1ID from viewRelationshipsAll where o2ID=%i and rtID=%i", idObject, idRelationshipType);
+				break;
+			default:
+				return false;
+		}
+
+		if(sort)
+			strSQL.AppendFormat(" order by seqIndex");
+
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			int sequenceIndex = m_pDS2->fv(0).get_asInt();
+			int idOtherObject = m_pDS2->fv(1).get_asInt();
+			objects.push_back(make_pair(sequenceIndex, idOtherObject));
+			m_pDS2->next();
+		}
+
+		m_pDS2->close();
+		return true;
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
 }
 
 bool CObjectDatabase::isValidArtworkType(int idObject, int idArtworkType)

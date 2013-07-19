@@ -34,6 +34,12 @@ typedef enum {
 	BLOB_ATTRIBUTE = 2
 } ATTRIBUTE_DATA_TYPE;
 
+typedef enum
+{
+	FIRST_OBJECT,
+	SECOND_OBJECT
+} OBJECT_RELATIONSHIP_POSITION;
+
 enum ObjectTypeID
 {
 	OBJECT = 1,
@@ -201,6 +207,7 @@ public:
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
 	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
 	void DeleteObjectLinks(int idObject);
+	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
 	CStdString GetArtworkType(int idArtworkType);
