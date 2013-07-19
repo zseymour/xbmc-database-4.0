@@ -34,6 +34,96 @@ typedef enum {
 	BLOB_ATTRIBUTE = 2
 } ATTRIBUTE_DATA_TYPE;
 
+enum ObjectTypeID
+{
+	OBJECT = 1,
+	CONTENT,
+	VIDEO,
+	MOVIE,
+	MUSICVIDEO,
+	TVSHOW,
+	EPISODE,
+	SONG,
+	PICTURE,
+	ORGANISATION,
+	PERSON,
+	ACTOR,
+	DIRECTOR,
+	WRITER,
+	MUSICIAN,
+	BAND,
+	STUDIO,
+	GROUPING,
+	MOVIESET,
+	SEASON,
+	GENRE,
+	ALBUM,
+	PLAYLIST,
+	TAG,
+	ADDON,
+	REPO
+};
+
+enum AttributeTypeID
+{
+	FILENAME = 1,
+	RELEASEDATE,
+	RATING,
+	ONLINEID,
+	SUMMARY,
+	VOTES,
+	CONTENTRATING,
+	ONLINERATING,
+	TAGLINE,
+	MOVIE_PLOT,
+	EPISODE_PLOT,
+	HEIGHT,
+	WIDTH,
+	ADDON_TYPE,
+	ADDON_SUMMARY,
+	ADDON_DESCRIPTION,
+	ADDON_RATING,
+	ADDON_ID,
+	ADDON_VERSION,
+	ADDON_AUTHOR,
+	REPO_ID
+};
+
+enum RelationshipTypeID
+{
+	OBJECT_HAS_TAG = 1,
+	MOVIE_HAS_GENRE,
+	MOVIE_HAS_ACTOR,
+	MOVIE_HAS_DIRECTOR,
+	MOVIE_HAS_WRITER,
+	MOVIE_HAS_STUDIO,
+	TVSHOW_HAS_GENRE,
+	TVSHOW_HAS_ACTOR,
+	TVSHOW_HAS_STUDIO,
+	TVSHOW_HAS_SEASON,
+	EPISODE_HAS_ACTOR,
+	MUSICIAN_HAS_SONG,
+	BAND_HAS_SONG,
+	BAND_HAS_MUSICIAN,
+	SEASON_HAS_EPISODE,
+	MOVIESET_HAS_MOVIE,
+	ALBUM_HAS_STUDIO,
+	ALBUM_HAS_SONG,
+	REPO_HAS_ADDON
+};
+
+enum ArtworkTypeID
+{
+	THUMBNAIL = 1,
+	FANART,
+	BANNER,
+	LANDSCAPE,
+	CLEARLOGO,
+	CLEARART,
+	DISCART,
+	CDART
+};
+
 class CObjectDatabase: public CDatabase {
 public:
 	class CAttributeType
@@ -155,6 +245,7 @@ private:
 	virtual int GetMinVersion() const;
 	virtual bool CreateTables();
 	virtual void CreateViews();
+	virtual void InsertDefaults();
 	bool isValidAttributeType(int idObject, int idAttributeType);
 	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
 	bool isValidArtworkType(int idObject, int idArtworkType);
