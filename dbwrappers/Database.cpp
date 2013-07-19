@@ -481,7 +481,7 @@ bool CDatabase::Connect(const CStdString &dbName, const DatabaseSettings &dbSett
         //  Also set the memory cache size to 16k
         m_pDS->exec("PRAGMA default_cache_size=4096\n");
       }
-      //CreateTables();
+      CreateTables();
     }
 
     // sqlite3 post connection operations
