@@ -15,6 +15,8 @@
 #include <sqlite3.h>
 #include "utils/StdString.h"
 #include "utils/StringUtils.h"
+#include "TestObjects.h"
+
 using namespace std;
 
 int main()
@@ -31,55 +33,15 @@ int main()
 	CObjectDatabase db;
 	if(db.Open())
 	{
+		TestObjects::InsertTestMovie(db);
 
-//		CStdString path = "/home/zach/movies/";
-//		int pathId = db.AddPath(path);
-//		int scraperId = db.AddScraper("scraper.movie","movies");
-//		db.LinkScraperToPath(scraperId, pathId);
-//
-//		CStdString filename = "/home/zach/movies/Brave.mkv";
-//		int idDirEnt = db.AddDirEnt(filename);
-//		int idObjectType = db.GetObjectTypeId("movie");
-//		int idObject = db.AddObject(idObjectType, "brave", "Brave");
-//		db.LinkObjectToDirent(idObject, idDirEnt);
-//
-//		CObjectDatabase::CAttribute fileAttr;
-//		fileAttr.strValue = filename;
-//		CObjectDatabase::CAttribute onlineRatingAttr;
-//		onlineRatingAttr.intValue = 98;
-//		CObjectDatabase::CAttribute contentRatingAttr;
-//		contentRatingAttr.strValue = "PG-13";
-//		CObjectDatabase::CAttribute votesAttr;
-//		votesAttr.intValue = 31134;
-//
-//		map<CStdString, CObjectDatabase::CAttribute> attributes;
-//		attributes["filename"] = fileAttr;
-//		attributes["onlinerating"] = onlineRatingAttr;
-//		attributes["contentrating"] = contentRatingAttr;
-//		attributes["votes"] = votesAttr;
-//
-//		db.AddAttributesForObject(idObject, attributes);
-
-		//int relationship = db.LinkObjectToObject(1, 1, 3, "");
-
-		int idPath = db.AddPath("/home/zach/movies/home/year1");
-
-		cout << idPath << endl;
 	}
 	else
 	{
 		cout << "Database failed to open." << endl;
 	}
 
-//	sqlite3 *db;
-//
-//	int rc;
-//	rc = sqlite3_open(host + "/" + file, &db);
-//	if( rc ){
-//		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-//		sqlite3_close(db);
-//		return(1);
-//	}
+
 
 }
 
