@@ -180,6 +180,7 @@ public:
 	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
 	bool GetAttribute(const int idAttribute, CAttribute& attribute);
 
+	int AddRelationshipType(CStdString stub, int idObjectType1, int idObjectType2, int inheritableType1, int inheritableType2, int sequenced);
 	int GetRelationshipTypeId(const CStdString stub);
 	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
@@ -187,8 +188,9 @@ public:
 	void DeleteObjectLinks(int idObject);
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 
+	int AddArtworkType(int idObjectType, CStdString stub, CStdString name, int inheritable);
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
-	CStdString GetArtworkType(int idArtworkType);
+	CStdString GetArtworkTypeStub(int idArtworkType);
 	CStdString GetArtForItem(int idObject, const int &idArtworkType);
 	bool GetArtForItem(int idObject, std::map<std::string, std::string> &art);
 	void SetArtForItem(int idObject, const int idArtworkType, const CStdString &url);

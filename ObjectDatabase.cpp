@@ -1803,6 +1803,39 @@ bool CObjectDatabase::isValidRelationshipType(int idRelationshipType, int idObje
 	return false;
 }
 
+int CObjectDatabase::AddRelationshipType(CStdString stub, int idObjectType1, int idObjectType2, int inheritableType1, int inheritableType2, int sequenced)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+		int idRelationshipType = -1;
+		CStdString strSQL = PrepareSQL("SELECT idRelationshipType FROM relationshipTypes WHERE stub LIKE '%s'",stub.c_str());
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() == 0)
+		{
+			m_pDS->close();
+			// doesnt exists, add it
+			strSQL=PrepareSQL("insert into relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1, inheritableType2, sequenced) values( NULL, %i, %i, '%s', %i, %i, %i)", idObjectType1, idObjectType2, stub.c_str(), inheritableType1, inheritableType2, sequenced);
+			m_pDS->exec(strSQL.c_str());
+			idRelationshipType = (int)m_pDS->lastinsertid();
+		}
+		else
+		{
+			idRelationshipType = m_pDS->fv("idAttributeType").get_asInt();
+			m_pDS->close();
+		}
+
+		return idRelationshipType;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, stub.c_str() );
+	}
+
+	return -1;
+}
+
 int CObjectDatabase::GetRelationshipTypeId(const CStdString stub)
 {
 	try
@@ -2013,6 +2046,39 @@ bool CObjectDatabase::isValidArtworkType(int idObject, int idArtworkType)
 	return false;
 }
 
+int CObjectDatabase::AddArtworkType(int idObjectType, CStdString stub, CStdString name, int inheritable)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+		int idArtworkType = -1;
+		CStdString strSQL = PrepareSQL("SELECT idArtworkType FROM artworkTypes WHERE stub LIKE '%s' and idObjectType=%i",stub.c_str(), idObjectType);
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() == 0)
+		{
+			m_pDS->close();
+			// doesnt exists, add it
+			strSQL=PrepareSQL("insert into artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) values( NULL, %i, '%s', '%s', %i)", idObjectType, stub.c_str(), name.c_str(), inheritable);
+			m_pDS->exec(strSQL.c_str());
+			idArtworkType = (int)m_pDS->lastinsertid();
+		}
+		else
+		{
+			idArtworkType = m_pDS->fv("idAttributeType").get_asInt();
+			m_pDS->close();
+		}
+
+		return idArtworkType;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, stub.c_str() );
+	}
+
+	return -1;
+}
+
 bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types)
 {
 
@@ -2049,7 +2115,7 @@ bool CObjectDatabase::GetAllArtworkTypeIDsForObjectType(int idObjectType, std::v
 	return false;
 }
 
-CStdString CObjectDatabase::GetArtworkType(int idArtworkType)
+CStdString CObjectDatabase::GetArtworkTypeStub(int idArtworkType)
 {
 
 	CStdString strSQL=PrepareSQL("select stub from artworkTypes where idArtworkType=%i", idArtworkType);
