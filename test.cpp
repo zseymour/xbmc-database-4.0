@@ -34,6 +34,13 @@ int main()
 	if(db.Open())
 	{
 		TestObjects::InsertTestMovie(db);
+		TestObjects::InsertTestTvShow(db);
+
+
+		int result = rename(host + "/database4.db", "/home/zachary/database4.db");
+
+		if(result == 0)
+			remove(host + "/database4.db");
 
 	}
 	else
