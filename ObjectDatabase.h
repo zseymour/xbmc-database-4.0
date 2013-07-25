@@ -18,6 +18,7 @@
 #include "settings/VideoSettings.h"
 #include "Bookmark.h"
 #include "Attribute.h"
+#include "Relationship.h"
 
 #include <memory>
 #include <set>
@@ -179,14 +180,16 @@ public:
 	int GetAttributeId(int idObject, int idAttributeType);
 	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
 	bool GetAttribute(const int idAttribute, CAttribute& attribute);
+	bool GetAttributeType(const int idAttributeType, CAttributeType& attributeType);
 
 	int AddRelationshipType(CStdString stub, int idObjectType1, int idObjectType2, int inheritableType1, int inheritableType2, int sequenced);
 	int GetRelationshipTypeId(const CStdString stub);
 	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
-	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
+	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0);
 	void DeleteObjectLinks(int idObject);
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
+	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 
 	int AddArtworkType(int idObjectType, CStdString stub, CStdString name, int inheritable);
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);

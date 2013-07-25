@@ -261,7 +261,8 @@ void CObjectDatabase::CreateViews()
 	CLog::Log(LOGINFO, "create relationship view");
 	m_pDS->exec("CREATE VIEW viewRelationshipsAll\n"
 			"AS\n"
-			"SELECT  o1.idObject        AS o1ID,\n"
+			"SELECT  r.idRelationship   AS rID,\n"
+			"		 o1.idObject        AS o1ID,\n"
 			"        o1.stub            AS o1Stub,\n"
 			"        IFNULL(o1.name,\n"
 			"               o1.stub)    AS o1Name,\n"
@@ -1778,6 +1779,43 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 	return false;
 }
 
+bool CObjectDatabase::GetAttributeType(const int idAttributeType, CAttributeType& attributeType)
+{
+	CStdString strSQL;
+	try
+	{
+
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL=PrepareSQL("SELECT * FROM attributeTypes WHERE idAttributeType=%i", idAttributeType);
+		m_pDS2->query(strSQL.c_str());
+		if(!m_pDS2->eof())
+		{
+
+			attributeType.idAttributeType = m_pDS2->fv("idAttributeType").get_asInt();
+			attributeType.idObjectType = m_pDS2->fv("idObjectType").get_asInt();
+			attributeType.inheritable = m_pDS2->fv("inheritable").get_asBool();
+			attributeType.name = m_pDS2->fv("name").get_asString();
+			attributeType.stub = m_pDS2->fv("stub").get_asString();
+			attributeType.type = ATTRIBUTE_DATA_TYPE(m_pDS2->fv("dataType").get_asInt());
+			attributeType.precision = m_pDS2->fv("dataPrecision").get_asInt();
+
+
+			m_pDS2->close();
+			return true;
+		}
+
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getattribute (%s)", __FUNCTION__, strSQL.c_str());
+	}
+		return false;
+}
+
 bool CObjectDatabase::isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2)
 {
 	CStdString strSQL;
@@ -2019,6 +2057,49 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
 	}
 
+	return false;
+}
+
+bool CObjectDatabase::GetRelationship(const int idRelationship, CRelationship& relationship)
+{
+	CStdString strSQL;
+	try
+	{
+
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE rID=%i", idRelationship);
+		m_pDS2->query(strSQL.c_str());
+		if(!m_pDS2->eof())
+		{
+			relationship.m_o1ID = m_pDS2->fv("o1ID").get_asInt();
+			relationship.m_o1Name = m_pDS2->fv("o1Name").get_asString();
+			relationship.m_o1Stub = m_pDS2->fv("o1Stub").get_asString();
+			relationship.m_o1TypeID = m_pDS2->fv("o1TypeID").get_asInt();
+			relationship.m_o1TypeName = m_pDS2->fv("o1TypeName").get_asString();
+
+			relationship.m_o2ID = m_pDS2->fv("o2ID").get_asInt();
+			relationship.m_o2Name = m_pDS2->fv("o2Name").get_asString();
+			relationship.m_o2Stub = m_pDS2->fv("o2Stub").get_asString();
+			relationship.m_o2TypeID = m_pDS2->fv("o2TypeID").get_asInt();
+			relationship.m_o2TypeName = m_pDS2->fv("o2TypeName").get_asString();
+
+			relationship.m_type= m_pDS2->fv("rtName").get_asString();
+			relationship.m_link = m_pDS2->fv("link").get_asString();
+			relationship.m_index = m_pDS2->fv("seqIndex").get_asInt();
+
+			m_pDS2->close();
+			return true;
+		}
+
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getattribute (%s)", __FUNCTION__, strSQL.c_str());
+	}
 	return false;
 }
 
