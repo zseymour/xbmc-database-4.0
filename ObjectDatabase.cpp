@@ -405,7 +405,7 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", SEASON, GROUPING, "season", "seasons");
+			"VALUES (%i, %i, '%s', '%s')", SEASON, GROUPING, "season", "Seasons");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
@@ -435,127 +435,145 @@ void CObjectDatabase::InsertDefaults()
 	CLog::Log(LOGINFO, "inserting attribute types");
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", FILENAME, CONTENT, "filename",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", FILENAME_STR, CONTENT, "filename",
 			"Filename", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RELEASEDATE, CONTENT, "released",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RELEASEDATE_STR, CONTENT, "released",
 			"Release Date", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RATING, CONTENT, "rating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", USERRATING_NUM, OBJECT, "rating",
 			"Rating", NUMBER_ATTRIBUTE, -1, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINEID, VIDEO, "onlineid",
-			"Online ID", NUMBER_ATTRIBUTE, 0, 1);
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINEID_STR, OBJECT, "onlineid",
+			"Online ID", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", SUMMARY, VIDEO, "summary",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VIDEO_SUMMARY_STR, VIDEO, "summary",
 			"Summary", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES, VIDEO, "votes",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES_NUM, VIDEO, "votes",
 			"Online Rating Votes", NUMBER_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENTRATING, VIDEO, "contentrating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENTRATING_STR, VIDEO, "contentrating",
 			"Content Rating", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINERATING, VIDEO, "onlinerating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINERATING_NUM, VIDEO, "onlinerating",
 			"onlinerating", NUMBER_ATTRIBUTE, -1, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TAGLINE, MOVIE, "tagline",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TAGLINE_STR, MOVIE, "tagline",
 			"Tagline", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOT, MOVIE, "plot",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOT_STR, MOVIE, "plot",
 			"plot", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT, EPISODE, "plot",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT_STR, EPISODE, "plot",
 			"plot", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", HEIGHT, PICTURE, "height",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", HEIGHT_NUM, PICTURE, "height",
 			"Height", NUMBER_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", WIDTH, PICTURE, "width",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", WIDTH_NUM, PICTURE, "width",
 			"Width", NUMBER_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+				"name, dataType, dataPrecision, inheritable) "
+				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", BIOGRAPHY_STR, ORGANISATION, "bio",
+				"Biography", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+					"name, dataType, dataPrecision, inheritable) "
+					"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", DATE_OF_BIRTH_STR, PERSON, "dob",
+					"Date of Birth", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+				"name, dataType, dataPrecision, inheritable) "
+				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", GROUP_DESCRIPTION_STR, GROUPING, "description",
+				"Description", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_TYPE, ADDON, "type",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_TYPE_STR, ADDON, "type",
 			"Type", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_SUMMARY, ADDON, "summary",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_SUMMARY_STR, ADDON, "summary",
 			"Summary", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_DESCRIPTION, ADDON, "description",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_DESCRIPTION_STR, ADDON, "description",
 			"Description", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_RATING, ADDON, "rating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_RATING_NUM, ADDON, "rating",
 			"Rating", NUMBER_ATTRIBUTE, -1, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_ID, ADDON, "addonid",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_ID_STR, ADDON, "addonid",
 			"Addon ID", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_VERSION, ADDON, "version",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_VERSION_STR, ADDON, "version",
 			"Version", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_AUTHOR, ADDON, "author",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_AUTHOR_STR, ADDON, "author",
 			"Author", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", REPO_ID, REPO, "addonid",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", REPO_ID_STR, REPO, "addonid",
 			"Addon ID", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
@@ -609,7 +627,15 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_ALBUM, MUSICIAN, ALBUM, "musician_has_album");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", BAND_HAS_SONG, BAND, SONG, "band_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", BAND_HAS_ALBUM, BAND, ALBUM, "band_has_album");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
@@ -631,6 +657,10 @@ void CObjectDatabase::InsertDefaults()
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
 			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_SONG, ALBUM, SONG, "album_has_song");
 	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_GENRE, ALBUM, GENRE, "album_has_genre");
+		m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", REPO_HAS_ADDON, REPO, ADDON, "repo_has_addon");
