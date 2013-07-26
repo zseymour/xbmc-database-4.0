@@ -1794,6 +1794,7 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 			attribute.setNumericValue(m_pDS2->fv("a.valueNumber").get_asInt());
 			attribute.setStringValue(m_pDS2->fv("a.valueString").get_asString());
 			attribute.setType(t);
+			attribute.idAttribute = m_pDS2->fv("a.idAttribute").get_asInt();
 
 			m_pDS2->close();
 			return true;
@@ -1807,6 +1808,34 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 		CLog::Log(LOGERROR, "%s unable to getattribute (%s)", __FUNCTION__, strSQL.c_str());
 	}
 	return false;
+}
+
+void CObjectDatabase::GetAllAttributesForObject(const int idObject, AttributeList attributes)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+		strSQL=PrepareSQL("SELECT idAttribute FROM attributes WHERE idObject=%i", idObject);
+		m_pDS->query(strSQL.c_str());
+		while (!m_pDS->eof())
+		{
+			int idAttribute = m_pDS->fv(0).get_asInt();
+			CAttribute attr;
+			if(GetAttribute(idAttribute, attr))
+			{
+				attributes.push_back(attr);
+			}
+			m_pDS->next();
+		}
+		m_pDS2->close();
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getattributelist (%s)", __FUNCTION__, strSQL.c_str());
+	}
 }
 
 bool CObjectDatabase::GetAttributeType(const int idAttributeType, CAttributeType& attributeType)
