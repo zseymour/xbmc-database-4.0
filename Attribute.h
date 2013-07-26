@@ -45,6 +45,8 @@ public:
 	void setNumericValue(int newValue);
 	void setType(CAttributeType newType);
 	ATTRIBUTE_DATA_TYPE getType();
+
+	int idAttribute;
 private:
 	CAttributeType type;
 	CStdString strValue;
