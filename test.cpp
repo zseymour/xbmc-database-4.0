@@ -35,6 +35,7 @@ int main()
 	{
 		TestObjects::InsertTestMovie(db);
 		TestObjects::InsertTestTvShow(db);
+		TestObjects::InsertTestAlbum(db);
 
 
 		int result = rename(host + "/database4.db", "/home/zachary/database4.db");
