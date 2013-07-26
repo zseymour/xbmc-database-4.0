@@ -20,6 +20,7 @@ TestObjects::~TestObjects() {
 
 void TestObjects::InsertTestMovie(CObjectDatabase& db)
 {
+	CLog::Log(LOGINFO, "Inserting movie(s).");
 	CStdString movieParent = "/home/zach/movies/";
 	db.AddPath(movieParent);
 
@@ -44,10 +45,10 @@ void TestObjects::InsertTestMovie(CObjectDatabase& db)
 	CAttributeType contentRating;
 	CAttributeType onlineRating;
 
-	db.GetAttributeType(FILENAME, fileName);
-	db.GetAttributeType(MOVIE_PLOT, plot);
-	db.GetAttributeType(CONTENTRATING, contentRating);
-	db.GetAttributeType(ONLINERATING, onlineRating);
+	db.GetAttributeType(FILENAME_STR, fileName);
+	db.GetAttributeType(MOVIE_PLOT_STR, plot);
+	db.GetAttributeType(CONTENTRATING_STR, contentRating);
+	db.GetAttributeType(ONLINERATING_NUM, onlineRating);
 
 	map<int, CAttribute> movie1Attributes;
 
@@ -157,6 +158,7 @@ void TestObjects::InsertTestMovie(CObjectDatabase& db)
 
 void TestObjects::InsertTestTvShow(CObjectDatabase& db)
 {
+	CLog::Log(LOGINFO, "Inserting tv show(s).");
 	CStdString tvParent = "/home/zach/tvshows/";
 	db.AddPath(tvParent);
 
@@ -209,13 +211,13 @@ void TestObjects::InsertTestTvShow(CObjectDatabase& db)
 	}
 
 	CAttributeType releaseDate;
-	db.GetAttributeType(RELEASEDATE, releaseDate);
+	db.GetAttributeType(RELEASEDATE_STR, releaseDate);
 	CAttributeType filename;
-	db.GetAttributeType(FILENAME, filename);
+	db.GetAttributeType(FILENAME_STR, filename);
 	CAttributeType summary;
-	db.GetAttributeType(SUMMARY, summary);
+	db.GetAttributeType(VIDEO_SUMMARY_STR, summary);
 	CAttributeType plot;
-	db.GetAttributeType(EPISODE_PLOT, plot);
+	db.GetAttributeType(EPISODE_PLOT_STR, plot);
 
 	map<int, CAttribute> show_attr;
 	CAttribute released = CAttribute(releaseDate);
@@ -322,6 +324,100 @@ void TestObjects::InsertTestTvShow(CObjectDatabase& db)
 
 void TestObjects::InsertTestAlbum(CObjectDatabase& db)
 {
+	CLog::Log(LOGINFO, "Inserting album(s).");
+
+	int band = db.AddObject(BAND, "coldplay", "Coldplay");
+	int guy = db.AddObject(MUSICIAN, "guyb", "Guy Berryman");
+	int jonny = db.AddObject(MUSICIAN, "jonnyb", "Jonny Buckland");
+	int will = db.AddObject(MUSICIAN, "willc", "Will Champion");
+	int chris = db.AddObject(MUSICIAN, "chrism", "Chris Martin");
+
+	int bandMems [4] = {guy, jonny, will, chris};
+
+	for(int i = 0; i < 4; i++)
+	{
+		db.LinkObjectToObject(BAND_HAS_MUSICIAN, band, bandMems[i]);
+	}
+
+	map<int, CAttribute> band_attr;
+
+	CAttributeType description;
+	db.GetAttributeType(BIOGRAPHY_STR, description);
+
+	CAttribute bandDesc = CAttribute(description);
+	bandDesc.setStringValue("Coldplay are a British rock band formed in 1996 by lead vocalist"
+			" Chris Martin and lead guitarist Jonny Buckland at University College London. "
+			"After they formed under the name Pectoralz, Guy Berryman joined the group as "
+			"a bassist and they changed their name to Starfish.Will Champion joined as a drummer, "
+			"backing vocalist, and multi-instrumentalist, completing the line-up. "
+			"Manager Phil Harvey is often considered an unofficial fifth member. "
+			"The band renamed themselves \"Coldplay\" in 1998, before recording"
+			" and releasing three EPs; Safety in 1998, Brothers & Sisters as a single "
+			"in 1999 and The Blue Room in the same year.");
+	band_attr.insert(make_pair(description.idAttributeType, bandDesc));
+
+	db.AddAttributesForObject(band, band_attr);
+
+	map<int, CAttribute> chris_attr;
+
+	CAttributeType bio;
+	db.GetAttributeType(BIOGRAPHY_STR, bio);
+	CAttributeType dob;
+	db.GetAttributeType(DATE_OF_BIRTH_STR, dob);
+
+	CAttribute chrisDob = CAttribute(dob);
+	chrisDob.setStringValue("1977-03-02");
+	chris_attr.insert(make_pair(dob.idAttributeType, chrisDob));
+
+	CAttribute chrisBio = CAttribute(bio);
+	chrisBio.setStringValue("Christopher Anthony John \"Chris\" Martin "
+			"(born 2 March 1977) is an English singer-songwriter and multi-instrumentalist,"
+			" and is the lead vocalist, pianist, rhythm guitarist and "
+			"one of the founders of the band Coldplay.");
+	chris_attr.insert(make_pair(bio.idAttributeType, chrisBio));
+
+	db.AddAttributesForObject(chris, chris_attr);
+
+	int album = db.AddObject(ALBUM, "arobtth", "A Rush of Blood to the Head");
+
+	db.LinkObjectToObject(BAND_HAS_ALBUM, band, album);
+
+
+	map<int, CAttribute> album_attr;
+
+	CAttributeType releaseDate;
+	db.GetAttributeType(RELEASEDATE_STR, releaseDate);
+	CAttributeType onlineid;
+	db.GetAttributeType(ONLINEID_STR, onlineid);
+
+	CAttribute albumReleased = CAttribute(releaseDate);
+	albumReleased.setStringValue("2002-08-26");
+	album_attr.insert(make_pair(releaseDate.idAttributeType, albumReleased));
+
+	CAttribute albumId = CAttribute(onlineid);
+	albumId.setStringValue("bfae6df7-3ee2-4031-ac09-8dc63c6ce6ca");
+	album_attr.insert(make_pair(onlineid.idAttributeType, albumId));
+
+	db.AddAttributesForObject(album, album_attr);
+
+	int track1 = db.AddObject(SONG, "tr1", "Politik");
+	int track2 = db.AddObject(SONG, "tr2", "In My Place");
+	int track3 = db.AddObject(SONG, "tr3", "God Put a Smile Upon Your Face");
+	int track4 = db.AddObject(SONG, "tr4", "The Scientist");
+	int track5 = db.AddObject(SONG, "tr5", "Clocks");
+
+	int tracks [5] = {track1, track2, track3, track4, track5};
+
+	for(int i = 0; i < 5; i++)
+	{
+		db.LinkObjectToObject(ALBUM_HAS_SONG, album, tracks[i], "", i+1);
+
+	}
+
+	int rock = db.AddObject(GENRE, "rock", "Rock");
+	db.LinkObjectToObject(ALBUM_HAS_GENRE, album, rock);
+
+
 
 }
 
