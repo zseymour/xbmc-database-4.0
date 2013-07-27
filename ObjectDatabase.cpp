@@ -158,6 +158,7 @@ bool CObjectDatabase::CreateTables()
 				"  contentHash  VARCHAR(32)   NULL ,\n"
 				"  settings     TEXT          NULL ,\n"
 				"  streams      TEXT          NULL ,\n"
+				"  dateAdded    TEXT          NULL,\n"
 				"\n"
 				"  FOREIGN KEY (idPath) REFERENCES paths(idPath)\n"
 				");");
@@ -303,10 +304,13 @@ void CObjectDatabase::CreateViews()
 			"       IFNULL(o.name,\n"
 			"               o.stub)    AS oName,\n"
 			"       p.path             AS pPath,\n"
+			"		p.idParent         AS pParent,\n"
 			"       d.filename	  AS dFileName,\n"
 			"       IFNULL(d.filename,\n"
 			"               d.url)     AS dUrl,\n"
-			"       d.settings         AS dSettings\n"
+			"		d.dateAdded        AS dateAdded,\n"
+			"       d.settings         AS dSettings,\n"
+			"		d.streams          AS dStreams\n"
 			"FROM\n"
 			"       objects o\n"
 			"INNER JOIN\n"
@@ -1314,7 +1318,7 @@ int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
 		}
 		m_pDS->close();
 
-		strSQL=PrepareSQL("insert into dirents (idDirent, idPath, filename) values(NULL, %i, '%s')", idPath, strFileName.c_str());
+		strSQL=PrepareSQL("insert into dirents (idDirent, idPath, filename, dateAdded) values(NULL, %i, '%s', '%s')", idPath, strFileName.c_str(), CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str());
 		m_pDS->exec(strSQL.c_str());
 		idDirent = (int)m_pDS->lastinsertid();
 		return idDirent;
@@ -1325,6 +1329,63 @@ int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
 	}
 	return -1;
 
+}
+
+bool CObjectDatabase::GetObjectDetails(CObjectInfoTag& details)
+{
+	return GetObjectDetails(details.m_idObject, details);
+}
+
+bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		details.m_idObject = idObject;
+
+		CStdString strSQL=PrepareSQL("select * from viewObjectDirentAll where oID=%i", idObject);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			details.m_strFile = m_pDS->fv("dFileName").get_asString();
+			details.m_strPath = m_pDS->fv("pPath").get_asString();
+			details.m_fileNameAndPath = URIUtils::AddFileToFolder(details.m_strPath, details.m_strFile);
+			details.m_url = m_pDS->fv("dUrl").get_asString();
+			details.m_parentPathId = m_pDS->fv("pParent").get_asInt();
+
+			details.m_dateAdded.SetFromDBDateTime(m_pDS->fv("dateAdded").get_asString());
+
+			CStdString settingsXML = m_pDS->fv("dSettings").get_asString();
+			if(!settingsXML.IsEmpty())
+				ParseVideoSettings(settingsXML, details.m_settings);
+			CStdString streamsXML = m_pDS->fv("dStreams").get_asString();
+			if(!streamsXML.IsEmpty())
+				ParseStreamDetails(streamsXML, details.m_streams);
+		}
+		m_pDS->close();
+
+		GetAllAttributesForObject(idObject, details.m_attributes);
+		GetAllRelationships(idObject, details.m_relations);
+
+		//TODO: Set the profile here
+		GetResumeBookMark(details.m_fileNameAndPath, details.m_profileId, details.m_resumePoint);
+
+		details.m_playCount = GetPlayCount(idObject, details.m_profileId);
+
+		details.m_streams.DetermineBestStreams();
+
+		if(details.m_streams.GetVideoDuration() > 0)
+			details.m_duration = details.m_streams.GetVideoDuration();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s(%i) failed", __FUNCTION__, idObject);
+	}
+
+	return true;
 }
 
 int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name)
@@ -2119,6 +2180,82 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 	return false;
 }
 
+bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelationship>& relations)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE o1ID=%i", idObject);
+
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			CRelationship relationship;
+
+			relationship.m_o1ID = m_pDS2->fv("o1ID").get_asInt();
+			relationship.m_o1Name = m_pDS2->fv("o1Name").get_asString();
+			relationship.m_o1Stub = m_pDS2->fv("o1Stub").get_asString();
+			relationship.m_o1TypeID = m_pDS2->fv("o1TypeID").get_asInt();
+			relationship.m_o1TypeName = m_pDS2->fv("o1TypeName").get_asString();
+
+			relationship.m_o2ID = m_pDS2->fv("o2ID").get_asInt();
+			relationship.m_o2Name = m_pDS2->fv("o2Name").get_asString();
+			relationship.m_o2Stub = m_pDS2->fv("o2Stub").get_asString();
+			relationship.m_o2TypeID = m_pDS2->fv("o2TypeID").get_asInt();
+			relationship.m_o2TypeName = m_pDS2->fv("o2TypeName").get_asString();
+
+			relationship.m_type= m_pDS2->fv("rtName").get_asString();
+			relationship.m_rtID = m_pDS2->fv("rtID").get_asInt();
+			relationship.m_link = m_pDS2->fv("link").get_asString();
+			relationship.m_index = m_pDS2->fv("seqIndex").get_asInt();
+
+			relations.push_back(relationship);
+		}
+
+		m_pDS2->close();
+
+		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE o2ID=%i", idObject);
+
+		m_pDS2->query(strSQL.c_str());
+		while (!m_pDS2->eof())
+		{
+			CRelationship relationship;
+
+			relationship.m_o1ID = m_pDS2->fv("o1ID").get_asInt();
+			relationship.m_o1Name = m_pDS2->fv("o1Name").get_asString();
+			relationship.m_o1Stub = m_pDS2->fv("o1Stub").get_asString();
+			relationship.m_o1TypeID = m_pDS2->fv("o1TypeID").get_asInt();
+			relationship.m_o1TypeName = m_pDS2->fv("o1TypeName").get_asString();
+
+			relationship.m_o2ID = m_pDS2->fv("o2ID").get_asInt();
+			relationship.m_o2Name = m_pDS2->fv("o2Name").get_asString();
+			relationship.m_o2Stub = m_pDS2->fv("o2Stub").get_asString();
+			relationship.m_o2TypeID = m_pDS2->fv("o2TypeID").get_asInt();
+			relationship.m_o2TypeName = m_pDS2->fv("o2TypeName").get_asString();
+
+			relationship.m_type= m_pDS2->fv("rtName").get_asString();
+			relationship.m_rtID = m_pDS2->fv("rtID").get_asInt();
+			relationship.m_link = m_pDS2->fv("link").get_asString();
+			relationship.m_index = m_pDS2->fv("seqIndex").get_asInt();
+
+			relations.push_back(relationship);
+		}
+
+		m_pDS2->close();
+		return true;
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
 bool CObjectDatabase::GetRelationship(const int idRelationship, CRelationship& relationship)
 {
 	CStdString strSQL;
@@ -2719,77 +2856,7 @@ bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
 			return false;
 		}
 
-		CXBMCTinyXML detailsXML;
-
-		detailsXML.Parse(strSettings);
-
-		TiXmlNode *root = detailsXML.RootElement();
-
-
-		//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
-		if (root && strcmp(root->ValueStr().c_str(), "streams") == 0)
-		{
-			CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
-			TiXmlPrinter printer;
-			printer.SetLineBreak("\n");
-			printer.SetIndent("  ");
-			detailsXML.Accept(&printer);
-			CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
-
-			TiXmlNode *stream = root->FirstChild("stream");
-			CStdString id;
-			for(stream; stream; stream=stream->NextSibling("stream"))
-			{
-				int type;
-				CStreamDetail::StreamType e;
-				if(XMLUtils::GetInt(stream, "type", type, 0, 2))
-					e = (CStreamDetail::StreamType)type;
-				else
-					continue;
-
-				CLog::Log(LOGNOTICE, "Stream type is %i", type);
-
-				switch (e) {
-				case CStreamDetail::StreamType::VIDEO:
-				{
-					CStreamDetailVideo *vp = new CStreamDetailVideo();
-					XMLUtils::GetString(stream, "videoCodec", vp->m_strCodec);
-					XMLUtils::GetFloat(stream, "videoAspect", vp->m_fAspect);
-					XMLUtils::GetInt(stream, "videoWidth", vp->m_iWidth);
-					XMLUtils::GetInt(stream, "videoHeight", vp->m_iHeight);
-					XMLUtils::GetInt(stream, "videoDuration", vp->m_iDuration);
-					details.AddStream(vp);
-					retValue = true;
-					break;
-				}
-				case CStreamDetail::StreamType::AUDIO:
-				{
-					CStreamDetailAudio *ap = new CStreamDetailAudio();
-					XMLUtils::GetString(stream, "audioCodec", ap->m_strCodec);
-					XMLUtils::GetInt(stream, "audioChannels", ap->m_iChannels);
-					XMLUtils::GetString(stream, "audioLanguage", ap->m_strLanguage);
-					details.AddStream(ap);
-					retValue = true;
-					break;
-				}
-				case CStreamDetail::StreamType::SUBTITLE:
-				{
-					CStreamDetailSubtitle *sp = new CStreamDetailSubtitle();
-					XMLUtils::GetString(stream, "subtitleLanguage", sp->m_strLanguage);
-					details.AddStream(sp);
-					retValue = true;
-					break;
-				}
-				}
-
-
-			}
-		}
-		else
-		{
-			CLog::Log(LOGERROR, "Improperly formatted XML %s", strSettings.c_str());
-			return false;
-		}
+		retValue = ParseStreamDetails(strSettings, details);
 
 	}
 	catch (...)
@@ -2798,6 +2865,83 @@ bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
 	}
 
 	details.DetermineBestStreams();
+
+	return retValue;
+}
+
+bool CObjectDatabase::ParseStreamDetails(CStdString xml, CStreamDetails& details)
+{
+	CXBMCTinyXML detailsXML;
+
+	detailsXML.Parse(xml);
+
+	TiXmlNode *root = detailsXML.RootElement();
+
+	bool retValue = false;
+	//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
+	if (root && strcmp(root->ValueStr().c_str(), "streams") == 0)
+	{
+		//CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
+		TiXmlPrinter printer;
+		printer.SetLineBreak("\n");
+		printer.SetIndent("  ");
+		detailsXML.Accept(&printer);
+		//CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
+
+		TiXmlNode *stream = root->FirstChild("stream");
+		CStdString id;
+		for(stream; stream; stream=stream->NextSibling("stream"))
+		{
+			int type;
+			CStreamDetail::StreamType e;
+			if(XMLUtils::GetInt(stream, "type", type, 0, 2))
+				e = (CStreamDetail::StreamType)type;
+			else
+				continue;
+
+			CLog::Log(LOGNOTICE, "Stream type is %i", type);
+
+			switch (e) {
+			case CStreamDetail::StreamType::VIDEO:
+			{
+				CStreamDetailVideo *vp = new CStreamDetailVideo();
+				XMLUtils::GetString(stream, "videoCodec", vp->m_strCodec);
+				XMLUtils::GetFloat(stream, "videoAspect", vp->m_fAspect);
+				XMLUtils::GetInt(stream, "videoWidth", vp->m_iWidth);
+				XMLUtils::GetInt(stream, "videoHeight", vp->m_iHeight);
+				XMLUtils::GetInt(stream, "videoDuration", vp->m_iDuration);
+				details.AddStream(vp);
+				retValue = true;
+				break;
+			}
+			case CStreamDetail::StreamType::AUDIO:
+			{
+				CStreamDetailAudio *ap = new CStreamDetailAudio();
+				XMLUtils::GetString(stream, "audioCodec", ap->m_strCodec);
+				XMLUtils::GetInt(stream, "audioChannels", ap->m_iChannels);
+				XMLUtils::GetString(stream, "audioLanguage", ap->m_strLanguage);
+				details.AddStream(ap);
+				retValue = true;
+				break;
+			}
+			case CStreamDetail::StreamType::SUBTITLE:
+			{
+				CStreamDetailSubtitle *sp = new CStreamDetailSubtitle();
+				XMLUtils::GetString(stream, "subtitleLanguage", sp->m_strLanguage);
+				details.AddStream(sp);
+				retValue = true;
+				break;
+			}
+			}
+
+
+		}
+	}
+	else
+	{
+		CLog::Log(LOGERROR, "Improperly formatted XML %s", xml.c_str());
+		return false;
+	}
 
 	return retValue;
 }
@@ -2893,68 +3037,7 @@ bool CObjectDatabase::GetVideoSettings(CVideoSettings& settings, int idFile)
 			return false;
 		}
 
-		CXBMCTinyXML settingsXML;
-
-		settingsXML.Parse(strSettings);
-
-		TiXmlNode *root = settingsXML.RootElement();
-
-
-		//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
-		if (root && strcmp(root->ValueStr().c_str(), "settings") == 0)
-		{
-			CLog::Log(LOGNOTICE, "Loaded settings from dirent from %i", idFile);
-			TiXmlPrinter printer;
-			printer.SetLineBreak("\n");
-			printer.SetIndent("  ");
-			settingsXML.Accept(&printer);
-			CLog::Log(LOGNOTICE, "Contents of settings for dirent %i are...\n%s", idFile, printer.CStr());
-
-
-			XMLUtils::GetInt(root, "viewmode", settings.m_ViewMode);
-			XMLUtils::GetFloat(root, "zoomamount", settings.m_CustomZoomAmount);
-			XMLUtils::GetFloat(root, "pixelratio", settings.m_CustomPixelRatio);
-			XMLUtils::GetInt(root, "audiostream", settings.m_AudioStream);
-			XMLUtils::GetInt(root, "subtitlestream", settings.m_SubtitleStream);
-			XMLUtils::GetFloat(root, "subtitledelay", settings.m_SubtitleDelay);
-			XMLUtils::GetBoolean(root, "subtitleson", settings.m_SubtitleOn);
-			XMLUtils::GetFloat(root, "brightness", settings.m_Brightness);
-			XMLUtils::GetFloat(root, "contrast", settings.m_Contrast);
-			XMLUtils::GetFloat(root, "gamma", settings.m_Gamma);
-			XMLUtils::GetFloat(root, "volumeamplification", settings.m_VolumeAmplification);
-			XMLUtils::GetFloat(root, "audiodelay", settings.m_AudioDelay);
-			XMLUtils::GetBoolean(root, "outputtoallspeakers", settings.m_OutputToAllSpeakers);
-			XMLUtils::GetBoolean(root, "crop", settings.m_Crop);
-			XMLUtils::GetInt(root, "cropbottom", settings.m_CropBottom);
-			XMLUtils::GetInt(root, "croptop", settings.m_CropTop);
-			XMLUtils::GetInt(root, "cropleft", settings.m_CropLeft);
-			XMLUtils::GetInt(root, "cropright", settings.m_CropRight);
-			XMLUtils::GetFloat(root, "sharpness", settings.m_Sharpness);
-			XMLUtils::GetFloat(root, "noisereduction", settings.m_NoiseReduction);
-			XMLUtils::GetBoolean(root, "nonlinstretch", settings.m_CustomNonLinStretch);
-			XMLUtils::GetFloat(root, "verticalshift", settings.m_CustomVerticalShift);
-
-			int deinterlacemode;
-			XMLUtils::GetInt(root, "deinterlacemode", deinterlacemode);
-			settings.m_DeinterlaceMode = (EDEINTERLACEMODE)deinterlacemode;
-
-			int interlace;
-			XMLUtils::GetInt(root, "interlacemethod", interlace);
-			settings.m_InterlaceMethod = (EINTERLACEMETHOD)interlace;
-
-			int scaling;
-			XMLUtils::GetInt(root, "scalingmethod", scaling);
-			settings.m_ScalingMethod = (ESCALINGMETHOD)scaling;
-
-			settings.m_SubtitleCached = false;
-
-			retValue = true;
-		}
-		else
-		{
-			CLog::Log(LOGERROR, "Improperly formatted XML %s", strSettings.c_str());
-			return false;
-		}
+		retValue = ParseVideoSettings(strSettings, settings);
 
 	}
 	catch (...)
@@ -2964,6 +3047,69 @@ bool CObjectDatabase::GetVideoSettings(CVideoSettings& settings, int idFile)
 
 
 	return retValue;
+}
+
+bool CObjectDatabase::ParseVideoSettings(CStdString xml, CVideoSettings& settings)
+{
+	CXBMCTinyXML settingsXML;
+
+	settingsXML.Parse(xml);
+
+	TiXmlNode *root = settingsXML.RootElement();
+
+
+	//CLog::Log(LOGNOTICE, "Root node has value %s", root->ValueStr().c_str());
+	if (root && strcmp(root->ValueStr().c_str(), "settings") == 0)
+	{
+		TiXmlPrinter printer;
+		printer.SetLineBreak("\n");
+		printer.SetIndent("  ");
+		settingsXML.Accept(&printer);
+
+		XMLUtils::GetInt(root, "viewmode", settings.m_ViewMode);
+		XMLUtils::GetFloat(root, "zoomamount", settings.m_CustomZoomAmount);
+		XMLUtils::GetFloat(root, "pixelratio", settings.m_CustomPixelRatio);
+		XMLUtils::GetInt(root, "audiostream", settings.m_AudioStream);
+		XMLUtils::GetInt(root, "subtitlestream", settings.m_SubtitleStream);
+		XMLUtils::GetFloat(root, "subtitledelay", settings.m_SubtitleDelay);
+		XMLUtils::GetBoolean(root, "subtitleson", settings.m_SubtitleOn);
+		XMLUtils::GetFloat(root, "brightness", settings.m_Brightness);
+		XMLUtils::GetFloat(root, "contrast", settings.m_Contrast);
+		XMLUtils::GetFloat(root, "gamma", settings.m_Gamma);
+		XMLUtils::GetFloat(root, "volumeamplification", settings.m_VolumeAmplification);
+		XMLUtils::GetFloat(root, "audiodelay", settings.m_AudioDelay);
+		XMLUtils::GetBoolean(root, "outputtoallspeakers", settings.m_OutputToAllSpeakers);
+		XMLUtils::GetBoolean(root, "crop", settings.m_Crop);
+		XMLUtils::GetInt(root, "cropbottom", settings.m_CropBottom);
+		XMLUtils::GetInt(root, "croptop", settings.m_CropTop);
+		XMLUtils::GetInt(root, "cropleft", settings.m_CropLeft);
+		XMLUtils::GetInt(root, "cropright", settings.m_CropRight);
+		XMLUtils::GetFloat(root, "sharpness", settings.m_Sharpness);
+		XMLUtils::GetFloat(root, "noisereduction", settings.m_NoiseReduction);
+		XMLUtils::GetBoolean(root, "nonlinstretch", settings.m_CustomNonLinStretch);
+		XMLUtils::GetFloat(root, "verticalshift", settings.m_CustomVerticalShift);
+
+		int deinterlacemode;
+		XMLUtils::GetInt(root, "deinterlacemode", deinterlacemode);
+		settings.m_DeinterlaceMode = (EDEINTERLACEMODE)deinterlacemode;
+
+		int interlace;
+		XMLUtils::GetInt(root, "interlacemethod", interlace);
+		settings.m_InterlaceMethod = (EINTERLACEMETHOD)interlace;
+
+		int scaling;
+		XMLUtils::GetInt(root, "scalingmethod", scaling);
+		settings.m_ScalingMethod = (ESCALINGMETHOD)scaling;
+
+		settings.m_SubtitleCached = false;
+
+		return true;
+	}
+	else
+	{
+		CLog::Log(LOGERROR, "Improperly formatted XML %s", xml.c_str());
+		return false;
+	}
 }
 
 int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)

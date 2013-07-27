@@ -19,6 +19,7 @@
 #include "Bookmark.h"
 #include "Attribute.h"
 #include "Relationship.h"
+#include "ObjectInfoTag.h"
 
 #include <memory>
 #include <set>
@@ -169,6 +170,8 @@ public:
 
 	int AddDirEnt(const CStdString& strFileNameAndPath);
 
+	bool GetObjectDetails(int idObject, CObjectInfoTag& details);
+	bool GetObjectDetails(CObjectInfoTag& details);
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
 	void DeleteObject(int idObject);
 	void DeleteObject(CStdString strFileNameAndPath, int idObject);
@@ -197,6 +200,7 @@ public:
 	void DeleteObjectLinks(int idObject);
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
+	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations);
 
 	int AddArtworkType(int idObjectType, CStdString stub, CStdString name, int inheritable);
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
@@ -246,6 +250,8 @@ private:
 	bool isValidAttributeType(int idObject, int idAttributeType);
 	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
 	bool isValidArtworkType(int idObject, int idArtworkType);
+	bool ParseVideoSettings(CStdString xml, CVideoSettings& settings);
+	bool ParseStreamDetails(CStdString xml, CStreamDetails& details);
 };
 
 #endif /* OBJECTDATABASE_H_ */
