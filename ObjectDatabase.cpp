@@ -2213,6 +2213,8 @@ bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelat
 			relationship.m_index = m_pDS2->fv("seqIndex").get_asInt();
 
 			relations.push_back(relationship);
+
+			m_pDS2->next();
 		}
 
 		m_pDS2->close();
@@ -2242,6 +2244,8 @@ bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelat
 			relationship.m_index = m_pDS2->fv("seqIndex").get_asInt();
 
 			relations.push_back(relationship);
+
+			m_pDS2->next();
 		}
 
 		m_pDS2->close();
