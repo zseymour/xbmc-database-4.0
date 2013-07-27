@@ -189,7 +189,7 @@ public:
 	int GetAttributeId(int idObject, int idAttributeType);
 	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
 	bool GetAttribute(const int idAttribute, CAttribute& attribute);
-	void GetAllAttributesForObject(const int idObject, AttributeList attributes);
+	void GetAllAttributesForObject(const int idObject, AttributeList& attributes);
 	bool GetAttributeType(const int idAttributeType, CAttributeType& attributeType);
 
 	int AddRelationshipType(CStdString stub, int idObjectType1, int idObjectType2, int inheritableType1, int inheritableType2, int sequenced);

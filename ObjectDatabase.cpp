@@ -1350,6 +1350,7 @@ bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
 		m_pDS->query(strSQL.c_str());
 		if (m_pDS->num_rows() > 0)
 		{
+			details.m_name = m_pDS->fv("oName").get_asString();
 			details.m_strFile = m_pDS->fv("dFileName").get_asString();
 			details.m_strPath = m_pDS->fv("pPath").get_asString();
 			details.m_fileNameAndPath = URIUtils::AddFileToFolder(details.m_strPath, details.m_strFile);
@@ -1857,11 +1858,11 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 			attribute.setType(t);
 			attribute.idAttribute = m_pDS2->fv("a.idAttribute").get_asInt();
 
-			m_pDS2->close();
-			return true;
+
 		}
 
-
+		m_pDS2->close();
+		return true;
 
 	}
 	catch (...)
@@ -1871,7 +1872,7 @@ bool CObjectDatabase::GetAttribute(const int idAttribute, CAttribute& attribute)
 	return false;
 }
 
-void CObjectDatabase::GetAllAttributesForObject(const int idObject, AttributeList attributes)
+void CObjectDatabase::GetAllAttributesForObject(const int idObject, AttributeList& attributes)
 {
 	CStdString strSQL;
 	try
@@ -1890,7 +1891,7 @@ void CObjectDatabase::GetAllAttributesForObject(const int idObject, AttributeLis
 			}
 			m_pDS->next();
 		}
-		m_pDS2->close();
+		m_pDS->close();
 
 	}
 	catch (...)
