@@ -25,6 +25,7 @@ public:
 	int m_idObject;
 	int m_profileId;
 
+	CStdString m_name;
 	CStdString m_basePath;
 	int m_parentPathId;
 	CStdString m_strFile;
