@@ -18,6 +18,7 @@ public:
 	bool HasLink();
 
 	CStdString m_type;
+	int m_rtID;
 	int m_o1ID;
 	CStdString m_o1Stub;
 	CStdString m_o1Name;
