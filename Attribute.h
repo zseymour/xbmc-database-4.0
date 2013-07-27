@@ -44,7 +44,16 @@ public:
 	void setNumericValue(float newValue);
 	void setNumericValue(int newValue);
 	void setType(CAttributeType newType);
-	ATTRIBUTE_DATA_TYPE getType();
+	ATTRIBUTE_DATA_TYPE getDataType();
+	const int getTypeID() const
+	{
+		return type.idAttributeType;
+	};
+
+	const bool isType(int idType) const
+	{
+		return type.idAttributeType == idType;
+	};
 
 	int idAttribute;
 private:

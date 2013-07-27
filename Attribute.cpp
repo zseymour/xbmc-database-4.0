@@ -67,7 +67,7 @@ CStdString CAttribute::getName()
 	return type.name;
 }
 
-ATTRIBUTE_DATA_TYPE CAttribute::getType()
+ATTRIBUTE_DATA_TYPE CAttribute::getDataType()
 {
 	return type.type;
 }
