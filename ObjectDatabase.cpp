@@ -2186,7 +2186,7 @@ bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelat
 		if (NULL == m_pDB.get()) return false;
 		if (NULL == m_pDS.get()) return false;
 
-		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE o1ID=%i", idObject);
+		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE (o1ID=%i OR o2ID=%i)", idObject, idObject);
 
 		if(idRelationshipType > 0)
 			strSQL.AppendFormat(" AND rtID=%i", idRelationshipType);
@@ -2220,36 +2220,7 @@ bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelat
 
 		m_pDS2->close();
 
-		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE o2ID=%i", idObject);
 
-		m_pDS2->query(strSQL.c_str());
-		while (!m_pDS2->eof())
-		{
-			CRelationship relationship;
-
-			relationship.m_o1ID = m_pDS2->fv("o1ID").get_asInt();
-			relationship.m_o1Name = m_pDS2->fv("o1Name").get_asString();
-			relationship.m_o1Stub = m_pDS2->fv("o1Stub").get_asString();
-			relationship.m_o1TypeID = m_pDS2->fv("o1TypeID").get_asInt();
-			relationship.m_o1TypeName = m_pDS2->fv("o1TypeName").get_asString();
-
-			relationship.m_o2ID = m_pDS2->fv("o2ID").get_asInt();
-			relationship.m_o2Name = m_pDS2->fv("o2Name").get_asString();
-			relationship.m_o2Stub = m_pDS2->fv("o2Stub").get_asString();
-			relationship.m_o2TypeID = m_pDS2->fv("o2TypeID").get_asInt();
-			relationship.m_o2TypeName = m_pDS2->fv("o2TypeName").get_asString();
-
-			relationship.m_type= m_pDS2->fv("rtName").get_asString();
-			relationship.m_rtID = m_pDS2->fv("rtID").get_asInt();
-			relationship.m_link = m_pDS2->fv("link").get_asString();
-			relationship.m_index = m_pDS2->fv("seqIndex").get_asInt();
-
-			relations.push_back(relationship);
-
-			m_pDS2->next();
-		}
-
-		m_pDS2->close();
 		return true;
 
 	}
