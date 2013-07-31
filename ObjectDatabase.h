@@ -172,6 +172,8 @@ public:
 
 	bool GetObjectDetails(int idObject, CObjectInfoTag& details);
 	bool GetObjectDetails(CObjectInfoTag& details);
+	void GetAllAttributesForObject(CObjectInfoTag& tag);
+	void GetAllRelationships(CObjectInfoTag& tag, int idRelationshipType = 0);
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
 	void DeleteObject(int idObject);
 	void DeleteObject(CStdString strFileNameAndPath, int idObject);
@@ -200,7 +202,7 @@ public:
 	void DeleteObjectLinks(int idObject);
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
-	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations);
+	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
 
 	int AddArtworkType(int idObjectType, CStdString stub, CStdString name, int inheritable);
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);
@@ -218,6 +220,7 @@ public:
 
 	void GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend);
 	bool GetResumeBookMark(const CStdString& strFilenameAndPath, int idProfile, CBookmark &bookmark);
+	bool GetResumePoint(CObjectInfoTag& tag);
 	void DeleteResumeBookMark(const CStdString &strFilenameAndPath, int idProfile);
 	void AddBookMarkToFile(const CStdString& strFilenameAndPath, int idProfile, const CBookmark &bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
 	void ClearBookMarkOfFile(const CStdString& strFilenameAndPath, int idProfile, CBookmark& bookmark, CBookmark::EType type /*= CBookmark::STANDARD*/);
@@ -227,11 +230,13 @@ public:
 	void SetStreamDetailsForFileId(const CStreamDetails& details, int idFile);
 	void SetStreamDetailsForFileId(const CStdString detailsXML, int idFile);
 	bool GetStreamDetails(CStreamDetails& details, int idFile);
+	bool GetStreamDetails(CObjectInfoTag& tag);
 
 	void SetVideoSettingsForFile(const CVideoSettings& settings, const CStdString &strFileNameAndPath);
 	void SetVideoSettingsForFileId(const CVideoSettings& settings, int idFile);
 	void SetVideoSettingsForFileId(const CStdString settingsXML, int idFile);
 	bool GetVideoSettings(CVideoSettings& settings, int idFile);
+	bool GetVideoSettings(CObjectInfoTag& tag);
 
 	int GetPlayCount(const int idObject, const int idProfile);
 	void SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date = CDateTime());

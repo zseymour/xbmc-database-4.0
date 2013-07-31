@@ -1359,27 +1359,14 @@ bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
 
 			details.m_dateAdded.SetFromDBDateTime(m_pDS->fv("dateAdded").get_asString());
 
-			CStdString settingsXML = m_pDS->fv("dSettings").get_asString();
-			if(!settingsXML.IsEmpty())
-				ParseVideoSettings(settingsXML, details.m_settings);
-			CStdString streamsXML = m_pDS->fv("dStreams").get_asString();
-			if(!streamsXML.IsEmpty())
-				ParseStreamDetails(streamsXML, details.m_streams);
 		}
 		m_pDS->close();
 
-		GetAllAttributesForObject(idObject, details.m_attributes);
-		GetAllRelationships(idObject, details.m_relations);
-
 		//TODO: Set the profile here
-		GetResumeBookMark(details.m_fileNameAndPath, details.m_profileId, details.m_resumePoint);
 
 		details.m_playCount = GetPlayCount(idObject, details.m_profileId);
 
-		details.m_streams.DetermineBestStreams();
 
-		if(details.m_streams.GetVideoDuration() > 0)
-			details.m_duration = details.m_streams.GetVideoDuration();
 	}
 	catch (...)
 	{
@@ -1387,6 +1374,16 @@ bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
 	}
 
 	return true;
+}
+
+void CObjectDatabase::GetAllAttributesForObject(CObjectInfoTag& tag)
+{
+	GetAllAttributesForObject(tag.m_idObject, tag.m_attributes);
+}
+
+void CObjectDatabase::GetAllRelationships(CObjectInfoTag& tag, int idRelationshipType)
+{
+	GetAllRelationships(tag.m_idObject, tag.m_relations, idRelationshipType);
 }
 
 int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name)
@@ -2181,7 +2178,7 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 	return false;
 }
 
-bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelationship>& relations)
+bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType)
 {
 	CStdString strSQL;
 	try
@@ -2190,6 +2187,9 @@ bool CObjectDatabase::GetAllRelationships(const int idObject, std::vector<CRelat
 		if (NULL == m_pDS.get()) return false;
 
 		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE o1ID=%i", idObject);
+
+		if(idRelationshipType > 0)
+			strSQL.AppendFormat(" AND rtID=%i", idRelationshipType);
 
 		m_pDS2->query(strSQL.c_str());
 		while (!m_pDS2->eof())
@@ -2655,6 +2655,11 @@ bool CObjectDatabase::GetResumeBookMark(const CStdString& strFilenameAndPath, in
 	return false;
 }
 
+bool CObjectDatabase::GetResumePoint(CObjectInfoTag& tag)
+{
+	return GetResumeBookMark(tag.m_fileNameAndPath, tag.m_profileId, tag.m_resumePoint);
+}
+
 void CObjectDatabase::DeleteResumeBookMark(const CStdString &strFilenameAndPath, int idProfile)
 {
 	if (!m_pDB.get() || !m_pDS.get())
@@ -2874,6 +2879,41 @@ bool CObjectDatabase::GetStreamDetails(CStreamDetails& details, int idFile)
 	return retValue;
 }
 
+bool CObjectDatabase::GetStreamDetails(CObjectInfoTag& tag)
+{
+	bool retVal = false;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+
+
+		CStdString strSQL=PrepareSQL("select dStreams from viewObjectDirentAll where oID=%i", tag.m_idObject);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			CStdString streamsXML = m_pDS->fv("dStreams").get_asString();
+			if(!streamsXML.IsEmpty())
+			{
+				retVal = ParseStreamDetails(streamsXML, tag.m_streams);
+				tag.m_streams.DetermineBestStreams();
+
+				if(tag.m_streams.GetVideoDuration() > 0)
+					tag.m_duration = tag.m_streams.GetVideoDuration();
+			}
+		}
+		m_pDS->close();
+	}
+	catch (...)
+	{
+
+	}
+
+	return retVal;
+}
+
 bool CObjectDatabase::ParseStreamDetails(CStdString xml, CStreamDetails& details)
 {
 	CXBMCTinyXML detailsXML;
@@ -3052,6 +3092,35 @@ bool CObjectDatabase::GetVideoSettings(CVideoSettings& settings, int idFile)
 
 
 	return retValue;
+}
+
+bool CObjectDatabase::GetVideoSettings(CObjectInfoTag& tag)
+{
+	bool retVal = false;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+
+
+		CStdString strSQL=PrepareSQL("select dSettings from viewObjectDirentAll where oID=%i", tag.m_idObject);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			CStdString settingsXML = m_pDS->fv("dSettings").get_asString();
+			if(!settingsXML.IsEmpty())
+				retVal = ParseVideoSettings(settingsXML, tag.m_settings);
+		}
+		m_pDS->close();
+	}
+	catch (...)
+	{
+
+	}
+
+	return retVal;
 }
 
 bool CObjectDatabase::ParseVideoSettings(CStdString xml, CVideoSettings& settings)
