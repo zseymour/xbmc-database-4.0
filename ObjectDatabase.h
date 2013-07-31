@@ -203,6 +203,8 @@ public:
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
+	int GetNextSequenceIndex(const int idObject1, const int idRelationshipType);
+
 
 	int AddArtworkType(int idObjectType, CStdString stub, CStdString name, int inheritable);
 	bool GetAllArtworkTypeIDsForObjectType(int idObjectType, std::vector<int>& types);

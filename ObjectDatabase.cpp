@@ -482,7 +482,7 @@ void CObjectDatabase::InsertDefaults()
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
 			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINERATING_NUM, VIDEO, "onlinerating",
-			"onlinerating", NUMBER_ATTRIBUTE, -1, 1);
+			"Online Rating", NUMBER_ATTRIBUTE, -1, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
@@ -494,13 +494,13 @@ void CObjectDatabase::InsertDefaults()
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
 			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOT_STR, MOVIE, "plot",
-			"plot", STRING_ATTRIBUTE, 0, 0);
+			"Plot", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
 			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT_STR, EPISODE, "plot",
-			"plot", STRING_ATTRIBUTE, 0, 0);
+			"Plot", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
@@ -1384,6 +1384,33 @@ void CObjectDatabase::GetAllAttributesForObject(CObjectInfoTag& tag)
 void CObjectDatabase::GetAllRelationships(CObjectInfoTag& tag, int idRelationshipType)
 {
 	GetAllRelationships(tag.m_idObject, tag.m_relations, idRelationshipType);
+}
+
+int CObjectDatabase::GetNextSequenceIndex(const int idObject1, const int idRelationshipType)
+{
+	int retVal = -1;
+	try
+	{
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+
+
+		CStdString strSQL=PrepareSQL("select max(seqIndex) from viewRelationshipsAll where o1ID=%i and rtID=%i", idObject1, idRelationshipType);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			retVal = m_pDS->fv(0).get_asInt()+1;
+		}
+		m_pDS->close();
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s(%i) failed", __FUNCTION__, idObject1);
+	}
+
+	return retVal;
 }
 
 int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name)
