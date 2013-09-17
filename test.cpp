@@ -11,37 +11,76 @@
 #include "DatabaseManager.h"
 #include "ObjectDatabase.h"
 #include "dbwrappers/Database.h"
+#include "ObjectInfoTag.h"
 #include <stdio.h>
 #include <sqlite3.h>
 #include "utils/StdString.h"
 #include "utils/StringUtils.h"
 #include "TestObjects.h"
+#include <algorithm>
 
 using namespace std;
 
-int main()
+
+
+char* getCmdOption(char ** begin, char ** end, const std::string & option)
 {
-	CStdString host = "/home/zachary/workspace/xbmc-database-4.0/Debug";
+    char ** itr = std::find(begin, end, option);
+    if (itr != end && ++itr != end)
+    {
+        return *itr;
+    }
+    return 0;
+}
+
+bool cmdOptionExists(char** begin, char** end, const std::string& option)
+{
+    return std::find(begin, end, option) != end;
+}
+
+int main(int argc, char * argv[])
+{
+
+	if(argc==1)
+	{
+		cout << "Usage: " << argv[0] << " [--db /path/to/MyObject4.db]  [--xml /path/to/videodb.xml] [--query /query/url]" << endl;
+		return 1;
+	}
+	CStdString host;
+	char * dbBase = getCmdOption(argv, argv+argc, "--db");
+
+	if(dbBase)
+	{
+		host = CStdString(dbBase);
+	}
+	else
+	{
+		host = "/home/zachary/workspace/xbmc-database-4.0/Debug";
+	}
 	//CStdString file = "database4.db";
 	DatabaseSettings settings;
 	settings.host = host;
-	settings.name = "database";
+	settings.name = "MyObject";
 	settings.type = "sqlite3";
+
 
 	CDatabaseManager::Get().Initialize(false,&settings);
 
-	CObjectDatabase db;
+
+
+	CObjectDatabase db(settings);
 	if(db.Open())
 	{
-		TestObjects::InsertTestMovie(db);
-		TestObjects::InsertTestTvShow(db);
-		TestObjects::InsertTestAlbum(db);
+		char * pathToXml = getCmdOption(argv, argv+argc, "--xml");
+		if(pathToXml)
+		{
+			CStdString path(pathToXml);
 
+			db.ImportVideoFromXML(path);
+		}
 
-		int result = rename(host + "/database4.db", "/home/zachary/database4.db");
+		char * queryString = getCmdOption(argv, argv+argc, "--query");
 
-		if(result == 0)
-			remove(host + "/database4.db");
 
 	}
 	else
@@ -50,7 +89,7 @@ int main()
 	}
 
 
-
+	return 0;
 }
 
 
