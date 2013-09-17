@@ -6,18 +6,26 @@
  */
 
 #include "ObjectDatabase.h"
+#include <fstream>
 #include "dbwrappers/dataset.h"
 #include "utils/URIUtils.h"
 #include "URL.h"
+#include "VideoInfoTag.h"
 
 using namespace std;
+using namespace dbiplus;
+
 
 CObjectDatabase::CObjectDatabase()
 {
-	CStdString host = "/home/zachary/workspace/xbmc-database-4.0/Debug";
-	settings.host = host;
-	settings.name = "database";
-	settings.type = "sqlite3";
+
+}
+
+CObjectDatabase::CObjectDatabase(DatabaseSettings s)
+{
+	settings.host = s.host;
+	settings.name = s.name;
+	settings.type = s.type;
 }
 
 CObjectDatabase::~CObjectDatabase()
@@ -92,7 +100,7 @@ bool CObjectDatabase::CreateTables()
 				"  idObject      INTEGER       NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
 				"  idObjectType  INTEGER       NOT NULL ,\n"
 				"  stub          VARCHAR(128)  NOT NULL ,\n"
-				"  name          TEXT          NOT NULL ,\n"
+				"  name          TEXT          NULL ,\n"
 				"         \n"
 				"  FOREIGN KEY (idObjectType) REFERENCES objectTypes(idObjectType)\n"
 				");");
@@ -151,7 +159,7 @@ bool CObjectDatabase::CreateTables()
 		m_pDS->exec("CREATE  TABLE IF NOT EXISTS dirents (\n"
 				"  idDirent     INTEGER       NOT NULL  PRIMARY KEY  AUTOINCREMENT,\n"
 				"  idPath       INTEGER       NOT NULL ,\n"
-				"  filename     TEXT          NOT NULL ,\n"
+				"  filename     TEXT          NULL ,\n"
 				"  url          TEXT          NULL ,\n"
 				"  fileLength   INTEGER       NOT NULL  DEFAULT 0 ,\n"
 				"  fileHash     VARCHAR(32)   NULL ,\n"
@@ -185,7 +193,19 @@ bool CObjectDatabase::CreateTables()
 				"  noUpdate        INTEGER      NULL      DEFAULT NULL\n"
 				");");
 		CLog::Log(LOGINFO, "create scrapers table");
-		m_pDS->exec("CREATE  TABLE IF NOT EXISTS pathlinkscraper (\n"
+		m_pDS->exec("CREATE  TABLE IF NOT EXISTS scrapers (\n"
+				"  idScraper       INTEGER       NOT NULL  PRIMARY KEY   AUTOINCREMENT ,\n"
+				"  content         TEXT          NULL      DEFAULT NULL ,\n"
+				"  scraper         TEXT          NULL      DEFAULT NULL ,\n"
+				"  scanRecursive   INTEGER       NULL      DEFAULT NULL ,\n"
+				"  useFolderNames  INTEGER       NULL      DEFAULT NULL ,\n"
+				"  settings        TEXT          NULL      DEFAULT NULL ,\n"
+				"  noUpdate        INTEGER       NULL      DEFAULT NULL\n"
+				");");
+
+
+		CLog::Log(LOGINFO, "create pathlinkscraper table");
+		m_pDS->exec("CREATE TABLE IF NOT EXISTS pathlinkscraper (\n"
 				"  idPath  INTEGER  NOT NULL ,\n"
 				"  idScraper  INTEGER  NOT NULL ,\n"
 				"\n"
@@ -238,11 +258,11 @@ bool CObjectDatabase::CreateTables()
 				");");
 		m_pDS->exec("CREATE INDEX ixSTDirent ON stacktimes (idDirent ASC);");
 
-		CLog::Log(LOGINFO, "create version table");
-		m_pDS->exec("CREATE  TABLE IF NOT EXISTS version (\n"
-				"  contentRevision       INTEGER  NULL  DEFAULT NULL ,\n"
-				"  contentCompressCount  INTEGER  NULL  DEFAULT NULL\n"
-				");");
+		//CLog::Log(LOGINFO, "create version table");
+		//m_pDS->exec("CREATE  TABLE IF NOT EXISTS version (\n"
+		//		"  contentRevision       INTEGER  NULL  DEFAULT NULL ,\n"
+		//		"  contentCompressCount  INTEGER  NULL  DEFAULT NULL\n"
+		//		");");
 
 		CreateViews();
 		InsertDefaults();
@@ -303,8 +323,12 @@ void CObjectDatabase::CreateViews()
 			"       o.stub             AS oStub,\n"
 			"       IFNULL(o.name,\n"
 			"               o.stub)    AS oName,\n"
+			"       o.idObjectType     as oType,\n"
+			"       p.idPath           AS pID,\n"
 			"       p.path             AS pPath,\n"
 			"		p.idParent         AS pParent,\n"
+			"       p.noUpdate         AS pNoUpdate,\n"
+			"       d.idDirent         AS dID,\n"
 			"       d.filename	  AS dFileName,\n"
 			"       IFNULL(d.filename,\n"
 			"               d.url)     AS dUrl,\n"
@@ -325,386 +349,535 @@ void CObjectDatabase::CreateViews()
 			"       paths p\n"
 			"ON\n"
 			"       d.idPath=p.idPath;");
+
+	CLog::Log(LOGINFO, "creating attribute view");
+	m_pDS->exec("CREATE VIEW viewObjectAttributes\n"
+			"AS\n"
+			"SELECT o.idObject                  AS oID,\n"
+			"       o.name                      AS oName,\n"
+			"       ot.idObjectType             AS otID,\n"
+			"       IFNULL(ot.stub,\n"
+			"				ot.name)            AS otName,\n"
+			"       at.idAttributeType          AS atID,\n"
+			"       a.valueString               AS aString,\n"
+			"       a.valueNumber               AS aNumber,\n"
+			"       a.ValueBlob                 AS aBlob,\n"
+			"       IFNULL(at.name,\n"
+			"               at.stub)            AS atName,\n"
+			"       at.dataType                 AS atDataType,\n"
+			"       at.dataPrecision            AS atPrecision\n"
+			"FROM\n"
+			"       attributes a\n"
+			"INNER JOIN\n"
+			"       attributeTypes at\n"
+			"ON\n"
+			"       a.idAttributeType=at.idAttributeType\n"
+			"INNER JOIN\n"
+			"       objects o\n"
+			"ON\n"
+			"       a.idObject=o.idObject\n"
+			"INNER JOIN\n"
+			"      objectTypes ot\n"
+			"ON\n"
+			"      o.idObjectType=ot.idObjectType;");
 }
 
 void CObjectDatabase::InsertDefaults()
 {
 	CStdString sql;
-
 	CLog::Log(LOGINFO, "inserting object types");
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", OBJECT, 0, "object", "Object");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_OBJECT, 0, "object", "Object");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", CONTENT, OBJECT, "content", "Content");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_CONTENT, OBJ_OBJECT, "content", "Content");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", VIDEO, CONTENT, "video", "Videos");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_VIDEO, OBJ_CONTENT, "video", "Videos");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", MOVIE, VIDEO, "movie", "Movies");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_MOVIE, OBJ_VIDEO, "movie", "Movies");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", TVSHOW, VIDEO, "tvshow", "TV Shows");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_TVSHOW, OBJ_VIDEO, "tvshow", "TV Shows");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", MUSICVIDEO, VIDEO, "musicvideo", "Music Videos");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_MUSICVIDEO, OBJ_VIDEO, "musicvideo", "Music Videos");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", EPISODE, VIDEO, "episode", "Episodes");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_EPISODE, OBJ_VIDEO, "episode", "Episodes");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", SONG, CONTENT, "song", "Songs");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_SONG, OBJ_CONTENT, "song", "Songs");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", PICTURE, OBJECT, "picture", "Pictures");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_PICTURE, OBJ_OBJECT, "picture", "Pictures");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", ORGANISATION, OBJECT, "organisation", "Organisation");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_ORGANISATION, OBJ_OBJECT, "organisation", "Organisation");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", PERSON, ORGANISATION, "person", "People");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_PERSON, OBJ_ORGANISATION, "person", "People");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", ACTOR, PERSON, "actor", "Actors");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_ACTOR, OBJ_PERSON, "actor", "Actors");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-				"VALUES (%i, %i, '%s', '%s')", DIRECTOR, PERSON, "director", "Directors");
+				"VALUES (%i, %i, '%s', '%s')", OBJ_DIRECTOR, OBJ_PERSON, "director", "Directors");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", WRITER, PERSON, "writer", "Writers");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_WRITER, OBJ_PERSON, "writer", "Writers");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", MUSICIAN, PERSON, "musician", "Musicians");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_MUSICIAN, OBJ_PERSON, "musician", "Musicians");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", BAND, ORGANISATION, "band", "Bands");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_BAND, OBJ_ORGANISATION, "band", "Bands");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", STUDIO, ORGANISATION, "studio", "Studios");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_STUDIO, OBJ_ORGANISATION, "studio", "Studios");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", GROUPING, OBJECT, "grouping", "Grouping");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_COUNTRY, OBJ_ORGANISATION, "country", "Countries");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", MOVIESET, GROUPING, "movieset", "Movie Sets");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_GROUPING, OBJ_OBJECT, "grouping", "Grouping");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", SEASON, GROUPING, "season", "Seasons");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_MOVIESET, OBJ_GROUPING, "movieset", "Movie Sets");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", GENRE, GROUPING, "genre", "Genres");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_SEASON, OBJ_GROUPING, "season", "Seasons");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", ALBUM, GROUPING, "album", "Albums");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_GENRE, OBJ_GROUPING, "genre", "Genres");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", PLAYLIST, GROUPING, "playlist", "Playlists");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_YEAR, OBJ_GROUPING, "year", "Years");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", TAG, GROUPING, "tag", "Tags");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_ALBUM, OBJ_GROUPING, "album", "Albums");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", ADDON, OBJECT, "addon", "Addons");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_PLAYLIST, OBJ_GROUPING, "playlist", "Playlists");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
-			"VALUES (%i, %i, '%s', '%s')", REPO, OBJECT, "repo", "Addon Repository");
+			"VALUES (%i, %i, '%s', '%s')", OBJ_TAG, OBJ_GROUPING, "tag", "Tags");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_ADDON, OBJ_OBJECT, "addon", "Addons");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_REPO, OBJ_OBJECT, "repo", "Addon Repository");
 	m_pDS->exec(sql.c_str());
 
 	CLog::Log(LOGINFO, "inserting attribute types");
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", FILENAME_STR, CONTENT, "filename",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", FILENAME_STR, OBJ_CONTENT, "filename",
 			"Filename", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RELEASEDATE_STR, CONTENT, "released",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", RELEASEDATE_STR, OBJ_CONTENT, "released",
 			"Release Date", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", USERRATING_NUM, OBJECT, "rating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", USERRATING_NUM, OBJ_OBJECT, "rating",
 			"Rating", NUMBER_ATTRIBUTE, -1, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINEID_STR, OBJECT, "onlineid",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINEID_STR, OBJ_OBJECT, "onlineid",
 			"Online ID", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VIDEO_SUMMARY_STR, VIDEO, "summary",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENT_SORTTITLE_STR, OBJ_CONTENT, "sorttitle",
+			"Sort Title", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENT_ORIGINALTITLE_STR, OBJ_CONTENT, "originaltitle",
+			"Original Title", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VIDEO_SUMMARY_STR, OBJ_VIDEO, "summary",
 			"Summary", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES_NUM, VIDEO, "votes",
-			"Online Rating Votes", NUMBER_ATTRIBUTE, 0, 1);
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES_STR, OBJ_VIDEO, "votes",
+			"Online Rating Votes", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENTRATING_STR, VIDEO, "contentrating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENTRATING_STR, OBJ_VIDEO, "contentrating",
 			"Content Rating", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINERATING_NUM, VIDEO, "onlinerating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ONLINERATING_NUM, OBJ_VIDEO, "onlinerating",
 			"Online Rating", NUMBER_ATTRIBUTE, -1, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TAGLINE_STR, MOVIE, "tagline",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TAGLINE_STR, OBJ_MOVIE, "tagline",
 			"Tagline", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOT_STR, MOVIE, "plot",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOT_STR, OBJ_MOVIE, "plot",
 			"Plot", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT_STR, EPISODE, "plot",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOTOUTLINE_STR, OBJ_MOVIE, "plotoutline",
+			"Plot Outline", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_RANKING_NUM, OBJ_MOVIE, "movierank",
+			"Movie Rank", NUMBER_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_TRAILER_URL_STR, OBJ_MOVIE, "trailer",
+			"Trailer", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TVSHOW_EPISODEGUIDE_STR, OBJ_TVSHOW, "episodeguide",
+			"Episode Guide", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TVSHOW_STATUS_STR, OBJ_TVSHOW, "status",
+			"Status", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT_STR, OBJ_EPISODE, "plot",
 			"Plot", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", HEIGHT_NUM, PICTURE, "height",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PRODUCTIONCODE_STR, OBJ_EPISODE, "productioncode",
+			"Production Code", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_SEASONSORT_NUM, OBJ_EPISODE, "seasonsort",
+			"Season Sort", NUMBER_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_EPISODESORT_NUM, OBJ_EPISODE, "episodesort",
+			"Episode Sort", NUMBER_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", HEIGHT_NUM, OBJ_PICTURE, "height",
 			"Height", NUMBER_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", WIDTH_NUM, PICTURE, "width",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", WIDTH_NUM, OBJ_PICTURE, "width",
 			"Width", NUMBER_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 				"name, dataType, dataPrecision, inheritable) "
-				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", BIOGRAPHY_STR, ORGANISATION, "bio",
+				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", BIOGRAPHY_STR, OBJ_ORGANISATION, "bio",
 				"Biography", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 					"name, dataType, dataPrecision, inheritable) "
-					"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", DATE_OF_BIRTH_STR, PERSON, "dob",
+					"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", DATE_OF_BIRTH_STR, OBJ_PERSON, "dob",
 					"Date of Birth", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 				"name, dataType, dataPrecision, inheritable) "
-				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", GROUP_DESCRIPTION_STR, GROUPING, "description",
+				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", GROUP_DESCRIPTION_STR, OBJ_GROUPING, "description",
 				"Description", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_TYPE_STR, ADDON, "type",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_TYPE_STR, OBJ_ADDON, "type",
 			"Type", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_SUMMARY_STR, ADDON, "summary",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_SUMMARY_STR, OBJ_ADDON, "summary",
 			"Summary", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_DESCRIPTION_STR, ADDON, "description",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_DESCRIPTION_STR, OBJ_ADDON, "description",
 			"Description", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_RATING_NUM, ADDON, "rating",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_RATING_NUM, OBJ_ADDON, "rating",
 			"Rating", NUMBER_ATTRIBUTE, -1, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_ID_STR, ADDON, "addonid",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_ID_STR, OBJ_ADDON, "addonid",
 			"Addon ID", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_VERSION_STR, ADDON, "version",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_VERSION_STR, OBJ_ADDON, "version",
 			"Version", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_AUTHOR_STR, ADDON, "author",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", ADDON_AUTHOR_STR, OBJ_ADDON, "author",
 			"Author", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", REPO_ID_STR, REPO, "addonid",
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", REPO_ID_STR, OBJ_REPO, "addonid",
 			"Addon ID", STRING_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	CLog::Log(LOGINFO, "inserting relationship types");
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1) "
-			"VALUES (%i,%i, %i,'%s', %i)", OBJECT_HAS_TAG, OBJECT, TAG, "object_has_tag", 1);
+			"VALUES (%i,%i, %i,'%s', %i)", OBJECT_HAS_TAG, OBJ_OBJECT, OBJ_TAG, "object_has_tag", 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1) "
+				"VALUES (%i,%i, %i,'%s', %i)", CONTENT_HAS_YEAR, OBJ_CONTENT, OBJ_YEAR, "content_has_year", 1);
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1)"
+			" VALUES (%i, %i, %i,'%s', 1)", VIDEO_HAS_DIRECTOR, OBJ_VIDEO, OBJ_DIRECTOR, "video_has_director");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1)"
+			" VALUES (%i, %i, %i,'%s', 1)", VIDEO_HAS_STUDIO, OBJ_VIDEO, OBJ_STUDIO, "video_has_studio");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inheritableType1)"
+				" VALUES (%i, %i, %i,'%s', 1)", VIDEO_HAS_GENRE, OBJ_VIDEO, OBJ_GENRE, "video_has_genre");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_GENRE, MOVIE, GENRE, "movie_has_genre");
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_ACTOR, OBJ_MOVIE, OBJ_ACTOR, "movie_has_actor");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_ACTOR, MOVIE, ACTOR, "movie_has_actor");
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_WRITER, OBJ_MOVIE, OBJ_WRITER, "movie_has_writer");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_STUDIO, MOVIE, STUDIO, "movie_has_studio");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_DIRECTOR, MOVIE, DIRECTOR, "movie_has_director");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_WRITER, MOVIE, WRITER, "movie_has_writer");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_GENRE, TVSHOW, GENRE, "tvshow_has_genre");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_ACTOR, TVSHOW, ACTOR, "tvshow_has_actor");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
-			" VALUES (%i, %i, %i,'%s', 1)", TVSHOW_HAS_SEASON, TVSHOW, SEASON, "tvshow_has_season");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_STUDIO, TVSHOW, STUDIO, "tvshow_has_studio");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_ACTOR, EPISODE, ACTOR, "episode_has_actor");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_SONG, MUSICIAN, SONG, "musician_has_song");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_ALBUM, MUSICIAN, ALBUM, "musician_has_album");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", BAND_HAS_SONG, BAND, SONG, "band_has_song");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", BAND_HAS_ALBUM, BAND, ALBUM, "band_has_album");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", BAND_HAS_MUSICIAN, BAND, MUSICIAN, "band_has_musician");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
-			" VALUES (%i, %i, %i,'%s', 1)", SEASON_HAS_EPISODE, SEASON, EPISODE, "season_has_episode");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIESET_HAS_MOVIE, MOVIESET, MOVIE, "movieset_has_movie");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", ALBUM_HAS_STUDIO, ALBUM, STUDIO, "album_has_studio");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
-			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_SONG, ALBUM, SONG, "album_has_song");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
-				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_GENRE, ALBUM, GENRE, "album_has_genre");
+				" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_COUNTRY, OBJ_MOVIE, OBJ_COUNTRY, "movie_has_country");
 		m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", REPO_HAS_ADDON, REPO, ADDON, "repo_has_addon");
+				" VALUES (%i, %i, %i,'%s')", MOVIE_LINK_TVSHOW, OBJ_MOVIE, OBJ_TVSHOW, "movie_link_tvshow");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_ACTOR, OBJ_TVSHOW, OBJ_ACTOR, "tvshow_has_actor");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", TVSHOW_HAS_SEASON, OBJ_TVSHOW, OBJ_SEASON, "tvshow_has_season");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_ACTOR, OBJ_EPISODE, OBJ_ACTOR, "episode_has_actor");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+				" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_WRITER, OBJ_EPISODE, OBJ_WRITER, "episode_has_writer");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICVIDEO_HAS_MUSICIAN, OBJ_MUSICVIDEO, OBJ_MUSICIAN, "musicvideo_has_musician");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICVIDEO_HAS_BAND, OBJ_MUSICVIDEO, OBJ_BAND, "musicvideo_has_band");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_SONG, OBJ_MUSICIAN, OBJ_SONG, "musician_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_ALBUM, OBJ_MUSICIAN, OBJ_ALBUM, "musician_has_album");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", BAND_HAS_SONG, OBJ_BAND, OBJ_SONG, "band_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", BAND_HAS_ALBUM, OBJ_BAND, OBJ_ALBUM, "band_has_album");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", BAND_HAS_MUSICIAN, OBJ_BAND, OBJ_MUSICIAN, "band_has_musician");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", SEASON_HAS_EPISODE, OBJ_SEASON, OBJ_EPISODE, "season_has_episode");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIESET_HAS_MOVIE, OBJ_MOVIESET, OBJ_MOVIE, "movieset_has_movie");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", ALBUM_HAS_STUDIO, OBJ_ALBUM, OBJ_STUDIO, "album_has_studio");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_SONG, OBJ_ALBUM, OBJ_SONG, "album_has_song");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_MUSICVIDEO, OBJ_ALBUM, OBJ_MUSICVIDEO, "album_has_musicvideo");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_GENRE, OBJ_ALBUM, OBJ_GENRE, "album_has_genre");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", REPO_HAS_ADDON, OBJ_REPO, OBJ_ADDON, "repo_has_addon");
 	m_pDS->exec(sql.c_str());
 
 	CLog::Log(LOGINFO, "inserting artwork types");
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", THUMBNAIL, OBJECT, "thumb", "Thumbnail", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", THUMBNAIL, OBJ_OBJECT, "thumb", "Thumbnail", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", FANART, OBJECT, "fanart", "Fanart", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", FANART, OBJ_OBJECT, "fanart", "Fanart", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", BANNER, VIDEO, "banner", "Banner", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", BANNER, OBJ_VIDEO, "banner", "Banner", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", LANDSCAPE, VIDEO, "landscape", "landscape", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", LANDSCAPE, OBJ_VIDEO, "landscape", "landscape", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", CLEARLOGO, OBJECT, "clearlogo", "ClearLogo", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", CLEARLOGO, OBJ_OBJECT, "clearlogo", "ClearLogo", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", CLEARART, VIDEO, "clearart", "ClearArt", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", CLEARART, OBJ_VIDEO, "clearart", "ClearArt", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", DISCART, MOVIE, "discart", "Disc Art", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", DISCART, OBJ_MOVIE, "discart", "Disc Art", 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO artworkTypes (idArtworkType, idObjectType, stub, name, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i)", CDART, ALBUM, "cdart", "CDArt", 1);
+			"VALUES (%i, %i, '%s', '%s', %i)", CDART, OBJ_ALBUM, "cdart", "CDArt", 1);
 	m_pDS->exec(sql.c_str());
 }
 
+int CObjectDatabase::RunQuery(const CStdString &sql)
+{
+	return RunQuery(m_pDS, sql);
+}
 
+int CObjectDatabase::RunQuery(auto_ptr<Dataset> &pDS, const CStdString &sql)
+{
+  //unsigned int time = XbmcThreads::SystemClockMillis();
+  int rows = -1;
+  if (pDS->query(sql.c_str()))
+  {
+    rows = pDS->num_rows();
+    if (rows == 0)
+      pDS->close();
+  }
+  CLog::Log(LOGDEBUG, "%s took %d ms for %d items query: %s", __FUNCTION__, 0, rows, sql.c_str());
+  return rows;
+}
+
+void CObjectDatabase::GetDataSet(std::auto_ptr<dbiplus::Dataset> &pDS)
+{
+	pDS.reset(m_pDB->CreateDataset());
+}
+
+void CObjectDatabase::ConstructPath(CStdString& strDest, const CStdString& strPath, const CStdString& strFileName)
+{
+  if (URIUtils::IsStack(strFileName) ||
+      URIUtils::IsInArchive(strFileName) || URIUtils::IsPlugin(strPath))
+    strDest = strFileName;
+  else
+    strDest = URIUtils::AddFileToFolder(strPath, strFileName);
+}
 
 bool CObjectDatabase::GetChildObjectTypes(int idObjectType, std::vector<int>& ids)
 {
@@ -1118,6 +1291,128 @@ int CObjectDatabase::GetPathId(const CStdString& strPath)
 	return -1;
 }
 
+bool CObjectDatabase::GetFilePathById(const int idObject, CStdString& path)
+{
+	CStdString sql;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		sql = PrepareSQL("SELECT pPath, dFilename FROM viewObjectDirentAll WHERE oID=%i", idObject);
+
+
+
+		if(!m_pDS->eof())
+		{
+			CStdString strFile = m_pDS->fv("dFilename").get_asString();
+			CStdString strPath=m_pDS->fv("pPath").get_asString();
+
+			ConstructPath(path, strPath, strFile);
+
+		}
+		m_pDS->close();
+		return true;
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed (%s)", __FUNCTION__, sql.c_str());
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::GetPaths(set<CStdString> &paths, int idObjectType)
+{
+	CStdString sql;
+	try
+	  {
+	    if (NULL == m_pDB.get()) return false;
+	    if (NULL == m_pDS.get()) return false;
+
+	    paths.clear();
+	    vector<int> ids;
+	    GetAllDescendentObjectTypes(idObjectType, ids);
+
+	    sql = PrepareSQL("SELECT pPath, pNoUpdate FROM viewObjectDirentAll WHERE pPath NOT like 'multipath://%%'"
+	    		" AND pID NOT IN (select idPath from dirents where filename like 'video_ts.ifo')" //omit dvd folders
+	    		" AND pID NOT IN (select idPath from dirents where filename like 'index.bdmv')" //omit blu-ray folders
+	    		" AND oType IN (%s)"
+	    		" ORDER BY pPath", StringUtils::Join(ids, ",").c_str());
+
+	    if(!m_pDS->query(sql.c_str()))
+	    	return false;
+
+	    while(!m_pDS->eof())
+	    {
+	    	if (!m_pDS->fv("pNoUpdate").get_asBool())
+	    		paths.insert(m_pDS->fv("pPath").get_asString());
+	    	m_pDS->next();
+	    }
+	    m_pDS->close();
+	    return true;
+
+	  }
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed (%s)", __FUNCTION__, sql.c_str());
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::GetSubPaths(const CStdString &basepath, vector< pair<int,string> >& subpaths)
+{
+  CStdString sql;
+  try
+  {
+    if (!m_pDB.get() || !m_pDS.get())
+      return false;
+
+    CStdString path(basepath);
+    URIUtils::AddSlashAtEnd(path);
+    sql = PrepareSQL("SELECT idPath,path FROM paths WHERE SUBSTR(path,1,%i)='%s'", StringUtils::utf8_strlen(path.c_str()), path.c_str());
+    m_pDS->query(sql.c_str());
+    while (!m_pDS->eof())
+    {
+      subpaths.push_back(make_pair(m_pDS->fv(0).get_asInt(), m_pDS->fv(1).get_asString()));
+      m_pDS->next();
+    }
+    m_pDS->close();
+    return true;
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, sql.c_str());
+  }
+  return false;
+}
+
+bool CObjectDatabase::GetPathsForObject(const int idObject, set<int>& paths)
+{
+	CStdString strSQL;
+	  try
+	  {
+	    if (NULL == m_pDB.get()) return false;
+	    if (NULL == m_pDS.get()) return false;
+	    strSQL = PrepareSQL("SELECT DISTINCT pID FROM viewObjectDirentAll WHERE oID=%i",idObject);
+	    m_pDS->query(strSQL.c_str());
+	    while (!m_pDS->eof())
+	    {
+	      paths.insert(m_pDS->fv(0).get_asInt());
+	      m_pDS->next();
+	    }
+	    m_pDS->close();
+	    return true;
+	  }
+	  catch (...)
+	  {
+	    CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, strSQL.c_str());
+	  }
+	  return false;
+}
+
 bool CObjectDatabase::GetPathHash(const CStdString &path, CStdString &hash)
 {
 	try
@@ -1169,6 +1464,11 @@ bool CObjectDatabase::SetPathHash(const CStdString &path, const CStdString &hash
 	return false;
 }
 
+void CObjectDatabase::InvalidatePathHash(const CStdString& strPath)
+{
+	SetPathHash(strPath, "");
+}
+
 void CObjectDatabase::SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName)
 {
 	if (URIUtils::IsStack(strFileNameAndPath) || strFileNameAndPath.Mid(0,6).Equals("rar://") || strFileNameAndPath.Mid(0,6).Equals("zip://"))
@@ -1186,21 +1486,52 @@ void CObjectDatabase::SplitPath(const CStdString& strFileNameAndPath, CStdString
 		URIUtils::Split(strFileNameAndPath,strPath, strFileName);
 }
 
+void CObjectDatabase::ExcludePathFromScraping(const int idPath)
+{
+	try
+	{
+
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+		if( idPath < 0 ) return;
+
+		m_pDS->exec(PrepareSQL("update paths set noUpdate=0 where idPath=%i", idPath).c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to excludepath (%i)", __FUNCTION__, idPath);
+	}
+}
+
 int CObjectDatabase::AddScraper(const CStdString& scraper, const CStdString& content )
+{
+	return AddScraper(scraper, content, "", 0, false, false);
+}
+
+int CObjectDatabase::AddScraper(const CStdString& scraper, const CStdString& content, const CStdString& settings, int recurse, bool useFolderNames, bool noUpdate)
 {
 	CStdString strSQL;
 	try
 	{
-		int idScraper = GetScraperId(scraper);
-		if (idScraper >= 0)
-			return idScraper; // already have the scraper
 
 		if (NULL == m_pDB.get()) return -1;
 		if (NULL == m_pDS.get()) return -1;
 
-		strSQL=PrepareSQL("insert into scrapers (scraper, content) values ('%s','%s')", scraper.c_str(), content.c_str());
-		m_pDS->exec(strSQL.c_str());
-		idScraper = (int)m_pDS->lastinsertid();
+
+		int idScraper = GetScraperId(scraper);
+		if (idScraper >= 0)
+		{
+			strSQL=PrepareSQL("update scrapers set content='%s', scanRecursive=%i, useFolderNames=%i, settings='%s', noUpdate=%i where idScraper=%i",
+					content.c_str(), recurse, useFolderNames ? 1 : 0, settings.c_str(), noUpdate ? 1 : 0, idScraper);
+			m_pDS->exec(strSQL.c_str());
+		}
+		else
+		{
+			strSQL=PrepareSQL("insert into scrapers (scraper, content, scanRecursive, useFolderNames, settings, noUpdate) values ('%s','%s', %i, %i, '%s', %i)", scraper.c_str(), content.c_str(), recurse, useFolderNames ? 1 : 0,
+					settings.c_str(), noUpdate ? 1 : 0);
+			m_pDS->exec(strSQL.c_str());
+			idScraper = (int)m_pDS->lastinsertid();
+		}
 		return idScraper;
 	}
 	catch (...)
@@ -1209,6 +1540,7 @@ int CObjectDatabase::AddScraper(const CStdString& scraper, const CStdString& con
 	}
 	return -1;
 }
+
 
 int CObjectDatabase::GetScraperId(const CStdString& scraper)
 {
@@ -1234,7 +1566,7 @@ int CObjectDatabase::GetScraperId(const CStdString& scraper)
 	return -1;
 }
 
-bool CObjectDatabase::LinkScraperToPath(int& idScraper, int& idPath)
+bool CObjectDatabase::LinkScraperToPath(int idScraper, int idPath)
 {
 	CStdString strSQL;
 	try
@@ -1242,7 +1574,18 @@ bool CObjectDatabase::LinkScraperToPath(int& idScraper, int& idPath)
 		if (NULL == m_pDB.get()) return -1;
 		if (NULL == m_pDS.get()) return -1;
 
-		strSQL=PrepareSQL("INSERT INTO pathlinkscraper (idPath, idScraper) VALUES (%i, %i)",idPath,idScraper);
+		if(idPath < 0)
+			return false;
+
+		if(idScraper > 0)
+		{
+			strSQL=PrepareSQL("INSERT INTO pathlinkscraper (idPath, idScraper) VALUES (%i, %i)",idPath,idScraper);
+
+		}
+		else
+		{
+			strSQL=PrepareSQL("DELETE FROM pathlinkscraper WHERE idPath=%i", idPath, idScraper);
+		}
 		m_pDS->exec(strSQL.c_str());
 
 		return true;
@@ -1269,6 +1612,45 @@ bool CObjectDatabase::LinkScraperToPath(CStdString& scraper, CStdString& path)
 	return LinkScraperToPath(idScraper, idPath);
 }
 
+bool CObjectDatabase::GetScraperForPath(const int idPath, CStdString& strScraper, CStdString& content, int& scanRecursive, bool& useFolderNames, CStdString& settings, bool& noUpdate, bool& exclude)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+		if (idPath < 0) return false;
+
+		strSQL=PrepareSQL("select s.scraper, s.content, s.scanRecursive, s.useFolderNames, s.settings, s.noUpdate, p.noUpdate"
+				" from paths p join pathlinkscraper ps on p.idPath = ps.idPath join scrapers s on ps.idScraper=s.idScraper where p.idPath=%i", idPath);
+		CLog::Log(LOGDEBUG, "%s, fetching scraper (%s)",__FUNCTION__, strSQL.c_str());
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			strScraper = m_pDS->fv("s.scraper").get_asString();
+			content = m_pDS->fv("s.content").get_asString();
+			scanRecursive = m_pDS->fv("s.scanRecursive").get_asBool();
+			useFolderNames = m_pDS->fv("s.useFolderNames").get_asBool();
+			settings = m_pDS->fv("s.settings").get_asString();
+			noUpdate = m_pDS->fv("s.noUpdate").get_asBool();
+			exclude = m_pDS->fv("p.noUpdate").get_asBool();
+
+			m_pDS->close();
+
+			CLog::Log(LOGDEBUG, "%s, returning scraper...",__FUNCTION__);
+			return true;
+		}
+
+		CLog::Log(LOGDEBUG, "%s, returning false...",__FUNCTION__);
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to getscraper (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return false;
+}
+
 bool CObjectDatabase::ScraperInUse(const int idScraper)
 {
 	try
@@ -1285,7 +1667,7 @@ bool CObjectDatabase::ScraperInUse(const int idScraper)
 	}
 	catch (...)
 	{
-		CLog::Log(LOGERROR, "%s(%s) failed", __FUNCTION__, idScraper);
+		CLog::Log(LOGERROR, "%s(%i) failed", __FUNCTION__, idScraper);
 	}
 	return false;
 }
@@ -1331,6 +1713,65 @@ int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
 
 }
 
+int CObjectDatabase::GetFileId(const CStdString& strFileNameAndPath)
+{
+	CStdString strSQL = "";
+	try
+	{
+		int idDirent;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		CStdString strFileName, strPath;
+		SplitPath(strFileNameAndPath,strPath,strFileName);
+
+		int idPath = GetPathId(strPath);
+		if (idPath < 0)
+			return -1;
+
+		CStdString strSQL=PrepareSQL("select idDirent from dirents where filename='%s' and idPath=%i", strFileName.c_str(),idPath);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			idDirent = m_pDS->fv("idDirent").get_asInt() ;
+			m_pDS->close();
+			return idDirent;
+		}
+		m_pDS->close();
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to adddirent (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
+void CObjectDatabase::UpdateDirentDateAdded(const int idDirent, CDateTime dateAdded)
+{
+	if (idDirent < 0)
+		return;
+
+	if (!dateAdded.IsValid())
+	      dateAdded = CDateTime::GetCurrentDateTime();
+
+	CStdString strSQL = "";
+	try
+	{
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+
+
+		strSQL = PrepareSQL("update dirents set dateAdded='%s' where idDirent=%d", dateAdded.GetAsDBDateTime().c_str(), idDirent);
+		m_pDS->exec(strSQL.c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to update dateadded for file (%s)", __FUNCTION__, strSQL.c_str());
+	}
+}
+
 bool CObjectDatabase::GetObjectDetails(CObjectInfoTag& details)
 {
 	return GetObjectDetails(details.m_idObject, details);
@@ -1353,9 +1794,10 @@ bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
 			details.m_name = m_pDS->fv("oName").get_asString();
 			details.m_strFile = m_pDS->fv("dFileName").get_asString();
 			details.m_strPath = m_pDS->fv("pPath").get_asString();
-			details.m_fileNameAndPath = URIUtils::AddFileToFolder(details.m_strPath, details.m_strFile);
+			ConstructPath(details.m_fileNameAndPath, details.m_strPath, details.m_strFile);
 			details.m_url = m_pDS->fv("dUrl").get_asString();
 			details.m_parentPathId = m_pDS->fv("pParent").get_asInt();
+			details.m_fileId = m_pDS->fv("dID").get_asInt();
 
 			details.m_dateAdded.SetFromDBDateTime(m_pDS->fv("dateAdded").get_asString());
 
@@ -1446,7 +1888,28 @@ int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, 
 	return -1;
 }
 
-void CObjectDatabase::DeleteObject(int idObject)
+void CObjectDatabase::UpdateObjectName(const int idObject, CStdString name)
+{
+	if (idObject < 0)
+		return;
+
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+
+		CStdString strSQL = PrepareSQL("update objects set name='%s' where idObject=%i", name.c_str(), idObject);
+
+		m_pDS->exec(strSQL.c_str());
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+}
+
+void CObjectDatabase::DeleteObject(int idObject, bool bKeep)
 {
 	if(idObject < 0)
 		return;
@@ -1455,10 +1918,12 @@ void CObjectDatabase::DeleteObject(int idObject)
 	if(GetObjectPath(idObject, fileNameAndPath))
 	{
 		DeleteObject(fileNameAndPath, idObject);
+	} else {
+		DeleteObject("", idObject, bKeep);
 	}
 }
 
-void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject)
+void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject, bool bKeep)
 {
 	CStdString strSQL;
 	try
@@ -1478,12 +1943,21 @@ void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject)
 		DeleteObjectLinks(idObject);
 		RemoveObjectDirentLink(idObject);
 
-		strSQL=PrepareSQL("delete from objects where idObject=i%", idObject);
-		m_pDS->exec(strSQL.c_str());
+		if(!bKeep)
+		{
+			strSQL=PrepareSQL("delete from objects where idObject=i%", idObject);
+			m_pDS->exec(strSQL.c_str());
+		}
 
+		 CStdString strPath, strFileName;
+		 SplitPath(strFileNameAndPath,strPath,strFileName);
+		 InvalidatePathHash(strPath);
+
+		CommitTransaction();
 	}
 	catch (...)
 	{
+		RollbackTransaction();
 		CLog::Log(LOGERROR, "%s unable to deleteobject (%s)", __FUNCTION__, strSQL.c_str());
 	}
 }
@@ -1760,6 +2234,28 @@ void CObjectDatabase::DeleteAttributesForObject(int idObject)
 	}
 }
 
+bool CObjectDatabase::SetAttribute(const int idObject, int idAttributeType, CStdString attrValue, int idAttribute)
+{
+	CAttributeType type;
+	GetAttributeType(idAttributeType, type);
+	CAttribute attr;
+	attr.setStringValue(attrValue);
+
+
+	return SetAttribute(idObject, type, attr, idAttribute);
+}
+
+bool CObjectDatabase::SetAttribute(const int idObject, int idAttributeType, float attrValue, int idAttribute)
+{
+	CAttributeType type;
+	GetAttributeType(idAttributeType, type);
+	CAttribute attr;
+	attr.setNumericValue(attrValue);
+
+
+	return SetAttribute(idObject, type, attr, idAttribute);
+}
+
 bool CObjectDatabase::SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute)
 {
 	CStdString strSQL;
@@ -1768,6 +2264,7 @@ bool CObjectDatabase::SetAttribute(const int idObject, CAttributeType attrType, 
 
 		if(!isValidAttributeType(idObject, attrType.idAttributeType)) return false;
 
+		attr.setType(attrType);
 		switch (attrType.type) {
 		case STRING_ATTRIBUTE:
 			if(idAttribute < 0)
@@ -2107,7 +2604,7 @@ int CObjectDatabase::GetRelationshipId(int idRelationshipType, int idObject1, in
 	return -1;
 }
 
-int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index)
+int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index, bool remove)
 {
 	CStdString strSQL;
 	try
@@ -2119,6 +2616,13 @@ int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, i
 
 		if(idRelationship >= 0)
 			return idRelationship;
+
+		if(remove)
+		{
+			strSQL=PrepareSQL("DELETE FROM relationships WHERE idRelationshipType=%i AND idObject1=%i AND idObject2=%i",idRelationshipType,idObject1,idObject2);
+			m_pDS->exec(strSQL.c_str());
+			return 0;
+		}
 
 
 		if(isValidRelationshipType(idRelationshipType, idObject1, idObject2))
@@ -2138,7 +2642,7 @@ int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, i
 	return -1;
 }
 
-void CObjectDatabase::DeleteObjectLinks(int idObject)
+void CObjectDatabase::DeleteObjectLinks(int idObject, int idRelationshipType)
 {
 	CStdString strSQL;
 	try
@@ -2151,7 +2655,9 @@ void CObjectDatabase::DeleteObjectLinks(int idObject)
 		}
 
 
-		strSQL=PrepareSQL("delete from relationships where idObject1=%i or idObject2=%i", idObject, idObject);
+		strSQL=PrepareSQL("delete from relationships where (idObject1=%i or idObject2=%i)", idObject, idObject);
+		if(idRelationshipType > 0)
+			strSQL.AppendFormat(" AND idRelationshipType=%i", idRelationshipType);
 		m_pDS->exec(strSQL.c_str());
 
 	}
@@ -2161,7 +2667,7 @@ void CObjectDatabase::DeleteObjectLinks(int idObject)
 	}
 }
 
-bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position, bool sort)
+bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position, int index, bool sort)
 {
 	CStdString strSQL;
 	try
@@ -2181,6 +2687,9 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 				return false;
 		}
 
+		if(index >= 0)
+			strSQL.AppendFormat(" and seqIndex=%i", index);
+
 		if(sort)
 			strSQL.AppendFormat(" order by seqIndex");
 
@@ -2191,6 +2700,58 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 			int idOtherObject = m_pDS2->fv(1).get_asInt();
 			objects.push_back(make_pair(sequenceIndex, idOtherObject));
 			m_pDS2->next();
+		}
+
+		m_pDS2->close();
+		return true;
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::HasRelations(const int idRelationshipType)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		m_pDS->query(PrepareSQL("SELECT * FROM relationships WHERE idRelationshipType=%i", idRelationshipType).c_str());
+
+		bool bResult = (m_pDS->num_rows() > 0);
+		m_pDS->close();
+		return bResult;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+	return false;
+}
+
+bool CObjectDatabase::HasRelationship(const int idObject, const int idRelationshipType)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE (o1ID=%i OR o2ID=%i)", idObject, idObject);
+
+		if(idRelationshipType > 0)
+			strSQL.AppendFormat(" AND rtID=%i", idRelationshipType);
+
+		m_pDS2->query(strSQL.c_str());
+		if (m_pDS2->eof())
+		{
+			m_pDS2->close();
+			return false;
 		}
 
 		m_pDS2->close();
@@ -2945,7 +3506,7 @@ bool CObjectDatabase::ParseStreamDetails(CStdString xml, CStreamDetails& details
 			CLog::Log(LOGNOTICE, "Stream type is %i", type);
 
 			switch (e) {
-			case CStreamDetail::StreamType::VIDEO:
+			case CStreamDetail::VIDEO:
 			{
 				CStreamDetailVideo *vp = new CStreamDetailVideo();
 				XMLUtils::GetString(stream, "videoCodec", vp->m_strCodec);
@@ -2957,7 +3518,7 @@ bool CObjectDatabase::ParseStreamDetails(CStdString xml, CStreamDetails& details
 				retValue = true;
 				break;
 			}
-			case CStreamDetail::StreamType::AUDIO:
+			case CStreamDetail::AUDIO:
 			{
 				CStreamDetailAudio *ap = new CStreamDetailAudio();
 				XMLUtils::GetString(stream, "audioCodec", ap->m_strCodec);
@@ -2967,7 +3528,7 @@ bool CObjectDatabase::ParseStreamDetails(CStdString xml, CStreamDetails& details
 				retValue = true;
 				break;
 			}
-			case CStreamDetail::StreamType::SUBTITLE:
+			case CStreamDetail::SUBTITLE:
 			{
 				CStreamDetailSubtitle *sp = new CStreamDetailSubtitle();
 				XMLUtils::GetString(stream, "subtitleLanguage", sp->m_strLanguage);
@@ -3184,6 +3745,19 @@ bool CObjectDatabase::ParseVideoSettings(CStdString xml, CVideoSettings& setting
 	}
 }
 
+void CObjectDatabase::EraseVideoSettings()
+{
+	try
+	{
+		CLog::Log(LOGINFO, "Deleting settings information for all movies");
+		m_pDS->exec("update dirents set settings=NULL");
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+}
+
 int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
 {
 	if (idObject < 0 || idProfile < 0)
@@ -3211,6 +3785,37 @@ int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
 		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
 	}
 	return -1;
+}
+
+
+CDateTime CObjectDatabase::GetLastPlayed(const int idObject, const int idProfile)
+{
+	CDateTime lastPlayed;
+	if (idObject < 0 || idProfile < 0)
+		return 0;  // not in db, so not watched
+
+	try
+	{
+		// error!
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		CStdString strSQL = PrepareSQL("select lastPlayed from settings WHERE idObject=%i AND idProfile=%i", idObject, idProfile);
+
+		if (m_pDS->query(strSQL.c_str()))
+		{
+			// there should only ever be one row returned
+			if (m_pDS->num_rows() == 1)
+				lastPlayed.SetFromDBDateTime(m_pDS->fv(0).get_asString());
+			m_pDS->close();
+		}
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+
+	return lastPlayed;
 }
 
 void CObjectDatabase::SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date)
@@ -3298,5 +3903,308 @@ int CObjectDatabase::GetObjectTypeCount(const int idObjectType)
 		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
 	}
 	return result;
+}
+
+CStdString CObjectDatabase::LoadFile(CStdString &path)
+{
+	std::ifstream ifs(path);
+	std::string content( (std::istreambuf_iterator<char>(ifs) ),
+	                       (std::istreambuf_iterator<char>()    ) );
+
+	return content;
+}
+
+void CObjectDatabase::ImportVideoFromXML(CStdString &path)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+
+		CLog::Log(LOGINFO, "Beginning import");
+
+		CXBMCTinyXML xmlDoc;
+		CStdString xmlPath = URIUtils::AddFileToFolder(path, "videodb.xml");
+		CStdString xml = LoadFile(xmlPath);
+		if (!xmlDoc.Parse(xml))
+			return;
+
+		TiXmlElement *root = xmlDoc.RootElement();
+		if (!root) return;
+
+		int iVersion = 0;
+		    XMLUtils::GetInt(root, "version", iVersion);
+
+		    CLog::Log(LOGDEBUG, "%s: Starting import (export version = %i)", __FUNCTION__, iVersion);
+
+		    TiXmlElement *movie = root->FirstChildElement();
+		    int current = 0;
+		    int total = 0;
+		    // first count the number of items...
+		    while (movie)
+		    {
+		      if (strnicmp(movie->Value(), "movie", 5)==0 ||
+		          strnicmp(movie->Value(), "tvshow", 6)==0 ||
+		          strnicmp(movie->Value(), "musicvideo",10)==0 )
+		        total++;
+		      movie = movie->NextSiblingElement();
+		    }
+
+		    CLog::Log(LOGINFO, "Adding %i videos...", total);
+
+		    CStdString actorsDir(URIUtils::AddFileToFolder(path, "actors"));
+		    CStdString moviesDir(URIUtils::AddFileToFolder(path, "movies"));
+		    CStdString musicvideosDir(URIUtils::AddFileToFolder(path, "musicvideos"));
+		    CStdString tvshowsDir(URIUtils::AddFileToFolder(path, "tvshows"));
+
+		    TiXmlElement *path = root->FirstChildElement("paths");
+		    path = path->FirstChildElement();
+		    while (path)
+		    {
+		    	CStdString strPath;
+		    	int idPath = -1;
+		    	if (XMLUtils::GetString(path,"url",strPath))
+		    		idPath = AddPath(strPath);
+
+		    	CStdString content;
+		    	if (XMLUtils::GetString(path,"content", content))
+		    	{ // check the scraper exists, if so store the path
+		    		CStdString id;
+		    		XMLUtils::GetString(path,"scraperpath",id);
+		    		int recurse;
+		    		XMLUtils::GetInt(path,"scanrecursive",recurse);
+		    		bool parent_name;
+		    		XMLUtils::GetBoolean(path,"usefoldernames",parent_name);
+		    		int idScraper = AddScraper(id, content, "", recurse, parent_name, false);
+
+		    		LinkScraperToPath(idScraper, idPath);
+
+		    	}
+		    	path = path->NextSiblingElement();
+		    }
+		    movie = root->FirstChildElement();
+		    while (movie)
+		    {
+		    	CLog::Log(LOGINFO, "Adding video #%i...", ++current);
+		    	CVideoInfoTag info;
+		    	if(strnicmp(movie->Value(), "movie", 5) == 0)
+		    	{
+		    		info.Load(movie);
+		    		int idMovie = AddObject(OBJ_MOVIE, info.m_strTitle, info.m_strTitle);
+		    		SetAttribute(idMovie, MOVIE_PLOT_STR, info.m_strPlot);
+		    		SetAttribute(idMovie, CONTENT_ORIGINALTITLE_STR, info.m_strOriginalTitle);
+		    		SetAttribute(idMovie, ONLINERATING_NUM, info.m_fRating);
+		    		SetAttribute(idMovie, MOVIE_RANKING_NUM, info.m_iTop250);
+		    		SetAttribute(idMovie, VOTES_STR, info.m_strVotes);
+		    		SetAttribute(idMovie, MOVIE_PLOTOUTLINE_STR, info.m_strPlotOutline);
+		    		SetAttribute(idMovie, TAGLINE_STR, info.m_strTagLine);
+		    		SetAttribute(idMovie, FILENAME_STR, info.m_strFile);
+		    		SetAttribute(idMovie, CONTENTRATING_STR, info.m_strMPAARating);
+		    		SetAttribute(idMovie, ONLINEID_STR, info.m_strIMDBNumber);
+		    		SetAttribute(idMovie, MOVIE_TRAILER_URL_STR, info.m_strTrailer);
+
+		    		int idDirEnt = AddDirEnt(info.m_strFileNameAndPath);
+		    		LinkObjectToDirent(idMovie, idDirEnt);
+
+		    		if(info.m_strSet)
+		    		{
+		    			int idSet = AddObject(OBJ_MOVIESET, info.m_strSet, info.m_strSet);
+		    			LinkObjectToObject(MOVIESET_HAS_MOVIE, idSet, idMovie);
+		    		}
+
+		    		CStdString strYear;
+		    		strYear.Format("%i", info.m_iYear);
+		    		int idYear = AddObject(OBJ_YEAR, strYear, strYear);
+		    		LinkObjectToObject(CONTENT_HAS_YEAR, idMovie, idYear);
+
+		    		for(vector<string>::const_iterator i = info.m_genre.begin(); i != info.m_genre.end(); ++i)
+		    		{
+		    			int idGenre = AddObject(OBJ_GENRE, *i, *i);
+		    			LinkObjectToObject(VIDEO_HAS_GENRE, idMovie, idGenre);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_country.begin(); i != info.m_country.end(); ++i)
+		    		{
+		    			int idCountry = AddObject(OBJ_COUNTRY, *i, *i);
+		    			LinkObjectToObject(MOVIE_HAS_COUNTRY, idMovie, idCountry);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_director.begin(); i != info.m_director.end(); ++i)
+		    		{
+		    			int idDirector = AddObject(OBJ_DIRECTOR, *i, *i);
+		    			LinkObjectToObject(VIDEO_HAS_DIRECTOR, idMovie, idDirector);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_writingCredits.begin(); i != info.m_writingCredits.end(); ++i)
+		    		{
+		    			int idWriter = AddObject(OBJ_WRITER, *i, *i);
+		    			LinkObjectToObject(MOVIE_HAS_WRITER, idMovie, idWriter);
+		    		}
+
+		    		for(vector<SActorInfo>::const_iterator i = info.m_cast.begin(); i != info.m_cast.end(); ++i)
+		    		{
+		    			int idActor = AddObject(OBJ_ACTOR, i->strName, i->strName);
+		    			LinkObjectToObject(MOVIE_HAS_ACTOR, idMovie, idActor, i->strRole);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_tags.begin(); i != info.m_tags.end(); ++i)
+		    		{
+		    			int idTag = AddObject(OBJ_TAG, *i, *i);
+		    			LinkObjectToObject(OBJECT_HAS_TAG, idMovie, idTag);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_studio.begin(); i != info.m_studio.end(); ++i)
+		    		{
+		    			int idStudio = AddObject(OBJ_STUDIO, *i, *i);
+		    			LinkObjectToObject(VIDEO_HAS_STUDIO, idMovie, idStudio);
+		    		}
+
+		    		SetStreamDetailsForFileId(info.m_streamDetails, idDirEnt);
+		    		UpdateDirentDateAdded(idDirEnt, info.m_dateAdded);
+
+		    	}
+		    	else if (strnicmp(movie->Value(), "tvshow", 6) == 0)
+		    	{
+		    		info.Load(movie);
+		    		URIUtils::AddSlashAtEnd(info.m_strPath);
+
+		    		int idTvShow = AddObject(OBJ_TVSHOW, info.m_strTitle, info.m_strTitle);
+		    		SetAttribute(idTvShow, CONTENT_ORIGINALTITLE_STR, info.m_strOriginalTitle);
+		    		SetAttribute(idTvShow, ONLINERATING_NUM, info.m_fRating);
+		    		SetAttribute(idTvShow, VOTES_STR, info.m_strVotes);
+		    		SetAttribute(idTvShow, TVSHOW_STATUS_STR, info.m_strStatus);
+		    		SetAttribute(idTvShow, TAGLINE_STR, info.m_strTagLine);
+		    		SetAttribute(idTvShow, FILENAME_STR, info.m_strFile);
+		    		SetAttribute(idTvShow, CONTENTRATING_STR, info.m_strMPAARating);
+		    		SetAttribute(idTvShow, ONLINEID_STR, info.m_strIMDBNumber);
+		    		SetAttribute(idTvShow, TVSHOW_EPISODEGUIDE_STR, info.m_strEpisodeGuide);
+
+
+		    		int idDirEnt = AddDirEnt(info.m_strFileNameAndPath);
+		    		LinkObjectToDirent(idTvShow, idDirEnt);
+
+		    		CStdString strYear;
+		    		strYear.Format("%i", info.m_iYear);
+		    		int idYear = AddObject(OBJ_YEAR, strYear, strYear);
+		    		LinkObjectToObject(CONTENT_HAS_YEAR, idTvShow, idYear);
+
+		    		for(vector<string>::const_iterator i = info.m_genre.begin(); i != info.m_genre.end(); ++i)
+		    		{
+		    			int idGenre = AddObject(OBJ_GENRE, *i, *i);
+		    			LinkObjectToObject(VIDEO_HAS_GENRE, idTvShow, idGenre);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_director.begin(); i != info.m_director.end(); ++i)
+		    		{
+		    			int idDirector = AddObject(OBJ_DIRECTOR, *i, *i);
+		    			LinkObjectToObject(VIDEO_HAS_DIRECTOR, idTvShow, idDirector);
+		    		}
+
+
+		    		for(vector<SActorInfo>::const_iterator i = info.m_cast.begin(); i != info.m_cast.end(); ++i)
+		    		{
+		    			int idActor = AddObject(OBJ_ACTOR, i->strName, i->strName);
+		    			LinkObjectToObject(TVSHOW_HAS_ACTOR, idTvShow, idActor, i->strRole);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_tags.begin(); i != info.m_tags.end(); ++i)
+		    		{
+		    			int idTag = AddObject(OBJ_TAG, *i, *i);
+		    			LinkObjectToObject(OBJECT_HAS_TAG, idTvShow, idTag);
+		    		}
+
+		    		for(vector<string>::const_iterator i = info.m_studio.begin(); i != info.m_studio.end(); ++i)
+		    		{
+		    			int idStudio = AddObject(OBJ_STUDIO, *i, *i);
+		    			LinkObjectToObject(VIDEO_HAS_STUDIO, idTvShow, idStudio);
+		    		}
+
+		    		SetStreamDetailsForFileId(info.m_streamDetails, idDirEnt);
+		    		UpdateDirentDateAdded(idDirEnt, info.m_dateAdded);
+
+		    		// now load the episodes
+		    		TiXmlElement *episode = movie->FirstChildElement("episodedetails");
+		    		while (episode)
+		    		{
+		    			CVideoInfoTag info;
+		    			info.Load(episode);
+
+		    			int season = info.m_iSeason;
+		    			CStdString seasonStub;
+		    			seasonStub.AppendFormat("%d-%d", idTvShow, season);
+		    			int idSeason = AddObject(OBJ_SEASON, seasonStub, seasonStub);
+		    			if(LinkObjectToObject(TVSHOW_HAS_SEASON, idTvShow, idSeason,"", season) >= 0)
+		    			{
+		    				CStdString episodeStub;
+		    				episodeStub.AppendFormat("%d-%dx%02d", idTvShow, season, info.m_iEpisode);
+		    				int idEpisode = AddObject(OBJ_EPISODE, episodeStub, info.m_strTitle);
+		    				LinkObjectToObject(SEASON_HAS_EPISODE, idSeason, idEpisode, "", info.m_iEpisode);
+		    				SetAttribute(idEpisode, EPISODE_PLOT_STR, info.m_strPlot);
+		    				SetAttribute(idEpisode, EPISODE_PRODUCTIONCODE_STR, info.m_strProductionCode);
+		    				SetAttribute(idEpisode, EPISODE_SEASONSORT_NUM, info.m_iSpecialSortSeason);
+		    				SetAttribute(idEpisode, RELEASEDATE_STR, info.m_firstAired.GetAsDBDate());
+
+		    				int idDirEnt = AddDirEnt(info.m_strFileNameAndPath);
+		    				LinkObjectToDirent(idEpisode, idDirEnt);
+
+		    				for(vector<string>::const_iterator i = info.m_genre.begin(); i != info.m_genre.end(); ++i)
+		    				{
+		    					int idGenre = AddObject(OBJ_GENRE, *i, *i);
+		    					LinkObjectToObject(VIDEO_HAS_GENRE, idEpisode, idGenre);
+		    				}
+
+		    				for(vector<string>::const_iterator i = info.m_director.begin(); i != info.m_director.end(); ++i)
+		    				{
+		    					int idDirector = AddObject(OBJ_DIRECTOR, *i, *i);
+		    					LinkObjectToObject(VIDEO_HAS_DIRECTOR, idEpisode, idDirector);
+		    				}
+
+		    				for(vector<SActorInfo>::const_iterator i = info.m_cast.begin(); i != info.m_cast.end(); ++i)
+		    				{
+		    					int idActor = AddObject(OBJ_ACTOR, i->strName, i->strName);
+		    					LinkObjectToObject(EPISODE_HAS_ACTOR, idEpisode, idActor, i->strRole);
+		    				}
+
+		    				for(vector<string>::const_iterator i = info.m_writingCredits.begin(); i != info.m_writingCredits.end(); ++i)
+		    				{
+		    					int idWriter = AddObject(OBJ_WRITER, *i, *i);
+		    					LinkObjectToObject(EPISODE_HAS_WRITER, idEpisode, idWriter);
+		    				}
+
+		    				for(vector<string>::const_iterator i = info.m_tags.begin(); i != info.m_tags.end(); ++i)
+		    				{
+		    					int idTag = AddObject(OBJ_TAG, *i, *i);
+		    					LinkObjectToObject(OBJECT_HAS_TAG, idEpisode, idTag);
+		    				}
+
+		    				for(vector<string>::const_iterator i = info.m_studio.begin(); i != info.m_studio.end(); ++i)
+		    				{
+		    					int idStudio = AddObject(OBJ_STUDIO, *i, *i);
+		    					LinkObjectToObject(VIDEO_HAS_STUDIO, idEpisode, idStudio);
+		    				}
+
+		    				SetStreamDetailsForFileId(info.m_streamDetails, idDirEnt);
+		    				UpdateDirentDateAdded(idDirEnt, info.m_dateAdded);
+
+
+		    			}
+
+
+		    			episode = episode->NextSiblingElement("episodedetails");
+		    		}
+		    	}
+
+		    	movie = movie->NextSiblingElement();
+		    }
+
+		    CLog::Log(LOGINFO, "Finished import");
+
+
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
 }
 

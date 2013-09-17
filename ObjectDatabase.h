@@ -39,32 +39,34 @@ typedef enum
 
 enum ObjectTypeID
 {
-	OBJECT = 1,
-	CONTENT,
-	VIDEO,
-	MOVIE,
-	MUSICVIDEO,
-	TVSHOW,
-	EPISODE,
-	SONG,
-	PICTURE,
-	ORGANISATION,
-	PERSON,
-	ACTOR,
-	DIRECTOR,
-	WRITER,
-	MUSICIAN,
-	BAND,
-	STUDIO,
-	GROUPING,
-	MOVIESET,
-	SEASON,
-	GENRE,
-	ALBUM,
-	PLAYLIST,
-	TAG,
-	ADDON,
-	REPO
+	OBJ_OBJECT = 1,
+	OBJ_CONTENT,
+	OBJ_VIDEO,
+	OBJ_MOVIE,
+	OBJ_MUSICVIDEO,
+	OBJ_TVSHOW,
+	OBJ_EPISODE,
+	OBJ_SONG,
+	OBJ_PICTURE,
+	OBJ_ORGANISATION,
+	OBJ_PERSON,
+	OBJ_ACTOR,
+	OBJ_DIRECTOR,
+	OBJ_WRITER,
+	OBJ_MUSICIAN,
+	OBJ_BAND,
+	OBJ_STUDIO,
+	OBJ_COUNTRY,
+	OBJ_GROUPING,
+	OBJ_MOVIESET,
+	OBJ_SEASON,
+	OBJ_GENRE,
+	OBJ_YEAR,
+	OBJ_ALBUM,
+	OBJ_PLAYLIST,
+	OBJ_TAG,
+	OBJ_ADDON,
+	OBJ_REPO
 };
 
 enum AttributeTypeID
@@ -73,13 +75,23 @@ enum AttributeTypeID
 	RELEASEDATE_STR,
 	USERRATING_NUM,
 	ONLINEID_STR,
+	CONTENT_SORTTITLE_STR,
+	CONTENT_ORIGINALTITLE_STR,
 	VIDEO_SUMMARY_STR,
-	VOTES_NUM,
+	VOTES_STR,
 	CONTENTRATING_STR,
 	ONLINERATING_NUM,
 	TAGLINE_STR,
 	MOVIE_PLOT_STR,
+	MOVIE_PLOTOUTLINE_STR,
+	MOVIE_RANKING_NUM,
+	MOVIE_TRAILER_URL_STR,
+	TVSHOW_STATUS_STR,
+	TVSHOW_EPISODEGUIDE_STR,
 	EPISODE_PLOT_STR,
+	EPISODE_PRODUCTIONCODE_STR,
+	EPISODE_SEASONSORT_NUM,
+	EPISODE_EPISODESORT_NUM,
 	HEIGHT_NUM,
 	WIDTH_NUM,
 	BIOGRAPHY_STR,
@@ -98,16 +110,20 @@ enum AttributeTypeID
 enum RelationshipTypeID
 {
 	OBJECT_HAS_TAG = 1,
-	MOVIE_HAS_GENRE,
+	CONTENT_HAS_YEAR,
+	VIDEO_HAS_DIRECTOR,
+	VIDEO_HAS_STUDIO,
+	VIDEO_HAS_GENRE,
 	MOVIE_HAS_ACTOR,
-	MOVIE_HAS_DIRECTOR,
 	MOVIE_HAS_WRITER,
-	MOVIE_HAS_STUDIO,
-	TVSHOW_HAS_GENRE,
+	MOVIE_HAS_COUNTRY,
+	MOVIE_LINK_TVSHOW,
 	TVSHOW_HAS_ACTOR,
-	TVSHOW_HAS_STUDIO,
 	TVSHOW_HAS_SEASON,
 	EPISODE_HAS_ACTOR,
+	EPISODE_HAS_WRITER,
+	MUSICVIDEO_HAS_MUSICIAN,
+	MUSICVIDEO_HAS_BAND,
 	MUSICIAN_HAS_SONG,
 	MUSICIAN_HAS_ALBUM,
 	BAND_HAS_SONG,
@@ -117,6 +133,7 @@ enum RelationshipTypeID
 	MOVIESET_HAS_MOVIE,
 	ALBUM_HAS_STUDIO,
 	ALBUM_HAS_SONG,
+	ALBUM_HAS_MUSICVIDEO,
 	ALBUM_HAS_GENRE,
 	REPO_HAS_ADDON
 };
@@ -135,10 +152,54 @@ enum ArtworkTypeID
 
 class CObjectDatabase: public CDatabase {
 public:
-
 	CObjectDatabase();
+	CObjectDatabase(DatabaseSettings s);
 	virtual ~CObjectDatabase();
 	virtual bool Open();
+
+	static int ArtworkTypeToID(CStdString type)
+	  {
+		  if(type=="thumb")
+		  {
+			  return THUMBNAIL;
+		  }
+		  else if(type=="fanart")
+		  {
+			  return FANART;
+		  }
+		  else if(type=="banner")
+		  {
+		      return BANNER;
+		  }
+		  else if(type=="landscape")
+		  {
+			  return LANDSCAPE;
+		  }
+		  else if(type=="clearlogo")
+		  {
+			  return CLEARLOGO;
+		  }
+		  else if(type=="clearart")
+		  {
+			  return CLEARART;
+		  }
+		  else if(type=="discart")
+		  {
+			  return DISCART;
+		  }
+		  else if(type=="cdart")
+		  {
+			  return CDART;
+		  }
+		  else
+		  {
+			  return -1;
+		  }
+	  }
+
+	int RunQuery(const CStdString &sql);
+	int RunQuery(std::auto_ptr<dbiplus::Dataset> &pDS, const CStdString &sql);
+	void GetDataSet(std::auto_ptr<dbiplus::Dataset> &pDS);
 
 	bool GetChildObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetParentObjectTypes(int idObjectType, std::vector<int>& ids);
@@ -158,25 +219,37 @@ public:
 
 	int AddPath(const CStdString& strPath);
 	int GetPathId(const CStdString& strPath);
+	bool GetFilePathById(const int idObject, CStdString& path);
+	bool GetSubPaths(const CStdString &basepath, std::vector< std::pair<int,std::string> >& subpaths);
+	bool GetPaths(std::set<CStdString> &paths, int idObjectType);
+	bool GetPathsForObject(const int idObject, std::set<int>& paths);
 	bool GetPathHash(const CStdString &path, CStdString &hash);
 	bool SetPathHash(const CStdString &path, const CStdString &hash);
+	void InvalidatePathHash(const CStdString& strPath);
 	void SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName);
 
 	int AddScraper(const CStdString& scraper, const CStdString& content);
+	int AddScraper(const CStdString& scraper, const CStdString& content, const CStdString& settings, int recurse, bool useFolderNames, bool noUpdate);
 	int GetScraperId(const CStdString& scraper);
-	bool LinkScraperToPath(int& idScraper, int& idPath);
+	bool LinkScraperToPath(int idScraper, int idPath);
 	bool LinkScraperToPath(CStdString& scraper, CStdString& path);
 	bool ScraperInUse(const int idScraper);
+	void ExcludePathFromScraping(const int idPath);
+	bool GetScraperForPath(const int idPath, CStdString& strScraper, CStdString& content, int& scanRecursive, bool& useFolderNames, CStdString& settings, bool& noUpdate, bool& exclude);
 
+	int GetFileId(const CStdString& strFileNameAndPath);
 	int AddDirEnt(const CStdString& strFileNameAndPath);
+	void UpdateDirentDateAdded(const int idDirent, CDateTime dateAdded);
 
 	bool GetObjectDetails(int idObject, CObjectInfoTag& details);
 	bool GetObjectDetails(CObjectInfoTag& details);
+	CStdString GetObjectName(int idObject);
 	void GetAllAttributesForObject(CObjectInfoTag& tag);
 	void GetAllRelationships(CObjectInfoTag& tag, int idRelationshipType = 0);
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
-	void DeleteObject(int idObject);
-	void DeleteObject(CStdString strFileNameAndPath, int idObject);
+	void UpdateObjectName(const int idObject, CStdString name);
+	void DeleteObject(int idObject, bool bKeep = false);
+	void DeleteObject(CStdString strFileNameAndPath, int idObject, bool bKeep = false);
 	bool LinkObjectToDirent(int& idObject, int& idDirent);
 	void RemoveObjectDirentLink(int idObject);
 	int GetObjectType(int idObject);
@@ -191,6 +264,8 @@ public:
 	int GetAttributeId(int idObject, int idAttributeType);
 	bool SetAttribute(const int idObject, CAttributeType attrType, CAttribute attr, int idAttribute=-1);
 	bool GetAttribute(const int idAttribute, CAttribute& attribute);
+	bool SetAttribute(const int idObject, int idAttributeType, CStdString attrValue, int idAttribute=-1);
+	bool SetAttribute(const int idObject, int idAttributeType, float attrValue, int idAttribute=-1);
 	void GetAllAttributesForObject(const int idObject, AttributeList& attributes);
 	bool GetAttributeType(const int idAttributeType, CAttributeType& attributeType);
 
@@ -198,11 +273,13 @@ public:
 	int GetRelationshipTypeId(const CStdString stub);
 	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
-	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0);
-	void DeleteObjectLinks(int idObject);
-	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
+	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0, bool remove = false);
+	void DeleteObjectLinks(int idObject, int idRelationshipType = 0);
+	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, int index = -1, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
+	bool HasRelationship(const int idObject, const int idRelationshipType = 0);
+	bool HasRelations(const int idRelationshipType);
 	int GetNextSequenceIndex(const int idObject1, const int idRelationshipType);
 
 
@@ -239,26 +316,32 @@ public:
 	void SetVideoSettingsForFileId(const CStdString settingsXML, int idFile);
 	bool GetVideoSettings(CVideoSettings& settings, int idFile);
 	bool GetVideoSettings(CObjectInfoTag& tag);
+	void EraseVideoSettings();
 
 	int GetPlayCount(const int idObject, const int idProfile);
 	void SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date = CDateTime());
 	void IncrementPlayCount(const int idObject, const int idProfile);
 	void UpdateLastPlayed(const int idObject, const int idProfile);
+	CDateTime GetLastPlayed(const int idObject, const int idProfile);
 
 	bool HasContent(const int idObjectType);
 	int GetObjectTypeCount(const int idObjectType);
+
+	void ImportVideoFromXML(CStdString &path);
 private:
 	DatabaseSettings settings;
-	const char *GetBaseDBName() const { return "database"; };
+	const char *GetBaseDBName() const { return "MyObject"; };
 	virtual int GetMinVersion() const;
 	virtual bool CreateTables();
 	virtual void CreateViews();
 	virtual void InsertDefaults();
+	void ConstructPath(CStdString& strDest, const CStdString& strPath, const CStdString& strFileName);
 	bool isValidAttributeType(int idObject, int idAttributeType);
 	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
 	bool isValidArtworkType(int idObject, int idArtworkType);
 	bool ParseVideoSettings(CStdString xml, CVideoSettings& settings);
 	bool ParseStreamDetails(CStdString xml, CStreamDetails& details);
+	CStdString LoadFile(CStdString &path);
 };
 
 #endif /* OBJECTDATABASE_H_ */
