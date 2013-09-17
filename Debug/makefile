@@ -10,6 +10,9 @@ RM := rm -rf
 -include sources.mk
 -include utils/subdir.mk
 -include threads/subdir.mk
+-include settings/subdir.mk
+-include profiles/subdir.mk
+-include linux/subdir.mk
 -include dbwrappers/subdir.mk
 -include commons/subdir.mk
 -include subdir.mk
@@ -46,14 +49,14 @@ all: xbmc-database-4.0
 # Tool invocations
 xbmc-database-4.0: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: Cross G++ Linker'
+	@echo 'Invoking: GCC C++ Linker'
 	g++  -o "xbmc-database-4.0" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(C++_DEPS)$(OBJS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) xbmc-database-4.0
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) xbmc-database-4.0
 	-@echo ' '
 
 .PHONY: all clean dependents
