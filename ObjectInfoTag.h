@@ -21,6 +21,7 @@ class CObjectInfoTag {
 public:
 	CObjectInfoTag();
 	virtual ~CObjectInfoTag();
+	bool IsEmpty();
 
 	int m_idObject;
 	int m_profileId;
@@ -28,6 +29,7 @@ public:
 	CStdString m_name;
 	CStdString m_basePath;
 	int m_parentPathId;
+	int m_fileId;
 	CStdString m_strFile;
 	CStdString m_strPath;
 	CStdString m_fileNameAndPath;
@@ -42,6 +44,7 @@ public:
 	CVideoSettings m_settings;
 
 	int m_playCount;
+	CDateTime m_lastPlayed;
 
 	int m_duration;
 

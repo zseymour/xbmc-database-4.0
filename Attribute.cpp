@@ -6,7 +6,7 @@
  */
 
 #include "Attribute.h"
-#include <tgmath.h>
+#include <ctgmath>
 
 CAttribute::CAttribute() {
 	// TODO Auto-generated constructor stub
@@ -85,6 +85,11 @@ void CAttribute::setType(CAttributeType newType)
 void CAttribute::setNumericValue(int newValue)
 {
 	intValue = newValue;
+}
+
+void CAttribute::setNumericValue(CStdString newValue)
+{
+	setNumericValue(std::stof(newValue));
 }
 
 void CAttribute::setNumericValue(float newValue)

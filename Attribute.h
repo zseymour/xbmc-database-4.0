@@ -43,6 +43,7 @@ public:
 	void setStringValue(CStdString newValue);
 	void setNumericValue(float newValue);
 	void setNumericValue(int newValue);
+	void setNumericValue(CStdString newValue);
 	void setType(CAttributeType newType);
 	ATTRIBUTE_DATA_TYPE getDataType();
 	const int getTypeID() const

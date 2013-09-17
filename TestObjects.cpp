@@ -32,9 +32,9 @@ void TestObjects::InsertTestMovie(CObjectDatabase& db)
 	int movie2DirEnt = db.AddDirEnt(movie2File);
 	int movie3DirEnt = db.AddDirEnt(movie3File);
 
-	int movie1Obj = db.AddObject(MOVIE, "StarWars4", "Star Wars: Episode IV - A New Hope");
-	int movie2Obj = db.AddObject(MOVIE, "StarWars5", "Star Wars: Episode V - The Empire Strikes Back");
-	int movie3Obj = db.AddObject(MOVIE, "StarWars6", "Star Wars: Episode VI - Return of the Jedi");
+	int movie1Obj = db.AddObject(OBJ_MOVIE, "StarWars4", "Star Wars: Episode IV - A New Hope");
+	int movie2Obj = db.AddObject(OBJ_MOVIE, "StarWars5", "Star Wars: Episode V - The Empire Strikes Back");
+	int movie3Obj = db.AddObject(OBJ_MOVIE, "StarWars6", "Star Wars: Episode VI - Return of the Jedi");
 
 	db.LinkObjectToDirent(movie1Obj, movie1DirEnt);
 	db.LinkObjectToDirent(movie2Obj, movie2DirEnt);
@@ -118,20 +118,20 @@ void TestObjects::InsertTestMovie(CObjectDatabase& db)
 
 	db.AddAttributesForObject(movie3Obj, movie3Attributes);
 
-	int actionGenre = db.AddObject(GENRE, "action", "Action");
-	int adventureGenre = db.AddObject(GENRE, "adventure", "Adventure");
-	int scifiGenre = db.AddObject(GENRE, "scifi", "Science Fiction");
+	int actionGenre = db.AddObject(OBJ_GENRE, "action", "Action");
+	int adventureGenre = db.AddObject(OBJ_GENRE, "adventure", "Adventure");
+	int scifiGenre = db.AddObject(OBJ_GENRE, "scifi", "Science Fiction");
 
 	int genreIds [3] = {actionGenre, adventureGenre, scifiGenre};
 
-	int movieset1 = db.AddObject(MOVIESET, "starwars", "Star Wars Original Trilogy");
-	int movieset2 = db.AddObject(MOVIESET, "starwars2", "Star Wars");
+	int movieset1 = db.AddObject(OBJ_MOVIESET, "starwars", "Star Wars Original Trilogy");
+	int movieset2 = db.AddObject(OBJ_MOVIESET, "starwars2", "Star Wars");
 
-	int lukeActor = db.AddObject(ACTOR, "markhamil", "Mark Hamill");
-	int hanActor = db.AddObject(ACTOR, "harford", "Harrison Ford");
-	int leiaActor = db.AddObject(ACTOR, "fisher", "Carrie Fisher");
+	int lukeActor = db.AddObject(OBJ_ACTOR, "markhamil", "Mark Hamill");
+	int hanActor = db.AddObject(OBJ_ACTOR, "harford", "Harrison Ford");
+	int leiaActor = db.AddObject(OBJ_ACTOR, "fisher", "Carrie Fisher");
 
-	int writer = db.AddObject(WRITER, "lucas", "George Lucas");
+	int writer = db.AddObject(OBJ_WRITER, "lucas", "George Lucas");
 
 	int movieIds [3] = {movie1Obj, movie2Obj, movie3Obj	};
 
@@ -145,7 +145,7 @@ void TestObjects::InsertTestMovie(CObjectDatabase& db)
 
 		for(int j = 0; j < 3; j++)
 		{
-			db.LinkObjectToObject(MOVIE_HAS_GENRE, movieIds[i], genreIds[j]);
+			db.LinkObjectToObject(VIDEO_HAS_GENRE, movieIds[i], genreIds[j]);
 		}
 
 		db.LinkObjectToObject(MOVIESET_HAS_MOVIE, movieset1, movieIds[i], "", i+1);
@@ -187,17 +187,17 @@ void TestObjects::InsertTestTvShow(CObjectDatabase& db)
 	int ep5Dir = db.AddDirEnt(episode3x05);
 	int ep6Dir = db.AddDirEnt(episode3x06);
 
-	int tvshowObj = db.AddObject(TVSHOW, "tla", "Avatar: The Last Airbender");
-	int season1Obj = db.AddObject(SEASON, "tla1", "The Last Airbender: Season 1");
-	int season2Obj = db.AddObject(SEASON, "tla2", "The Last Airbender: Season 2");
-	int season3Obj = db.AddObject(SEASON, "tla3", "The Last Airbender: Season 3");
+	int tvshowObj = db.AddObject(OBJ_TVSHOW, "tla", "Avatar: The Last Airbender");
+	int season1Obj = db.AddObject(OBJ_SEASON, "tla1", "The Last Airbender: Season 1");
+	int season2Obj = db.AddObject(OBJ_SEASON, "tla2", "The Last Airbender: Season 2");
+	int season3Obj = db.AddObject(OBJ_SEASON, "tla3", "The Last Airbender: Season 3");
 
-	int ep1Obj = db.AddObject(EPISODE, "tla1x01", "The Boy in the Iceberg");
-	int ep2Obj = db.AddObject(EPISODE, "tla1x02", "The Avatar Returns");
-	int ep3Obj = db.AddObject(EPISODE, "tla2x03", "Return to Omashu");
-	int ep4Obj = db.AddObject(EPISODE, "tla2x04", "The Swamp");
-	int ep5Obj = db.AddObject(EPISODE, "tla3x05", "The Beach");
-	int ep6Obj = db.AddObject(EPISODE, "tla3x06", "The Avatar and the Firelord");
+	int ep1Obj = db.AddObject(OBJ_EPISODE, "tla1x01", "The Boy in the Iceberg");
+	int ep2Obj = db.AddObject(OBJ_EPISODE, "tla1x02", "The Avatar Returns");
+	int ep3Obj = db.AddObject(OBJ_EPISODE, "tla2x03", "Return to Omashu");
+	int ep4Obj = db.AddObject(OBJ_EPISODE, "tla2x04", "The Swamp");
+	int ep5Obj = db.AddObject(OBJ_EPISODE, "tla3x05", "The Beach");
+	int ep6Obj = db.AddObject(OBJ_EPISODE, "tla3x06", "The Avatar and the Firelord");
 
 	int objIds [6] = {ep1Obj, ep2Obj, ep3Obj, ep4Obj, ep5Obj, ep6Obj};
 	int dirIds [6] = {ep1Dir, ep2Dir, ep3Dir, ep4Dir, ep5Dir, ep6Dir};
@@ -285,16 +285,16 @@ void TestObjects::InsertTestTvShow(CObjectDatabase& db)
 		db.AddAttributesForObject(objIds[i], attr);
 	}
 
-	int actionGenre = db.AddObject(GENRE, "action", "Action");
-	int adventureGenre = db.AddObject(GENRE, "adventure", "Adventure");
-	int scifiGenre = db.AddObject(GENRE, "scifi", "Science Fiction");
+	int actionGenre = db.AddObject(OBJ_GENRE, "action", "Action");
+	int adventureGenre = db.AddObject(OBJ_GENRE, "adventure", "Adventure");
+	int scifiGenre = db.AddObject(OBJ_GENRE, "scifi", "Science Fiction");
 
 	int genreIds [3] = {actionGenre, adventureGenre, scifiGenre};
 	CStdString links [3] = {"Book One: Water", "Book Two: Earth", "Book Three: Fire"};
 
 	for(int i = 0; i < 3; i++)
 	{
-		db.LinkObjectToObject(TVSHOW_HAS_GENRE, tvshowObj, genreIds[i]);
+		db.LinkObjectToObject(VIDEO_HAS_GENRE, tvshowObj, genreIds[i]);
 		db.LinkObjectToObject(TVSHOW_HAS_SEASON, tvshowObj, seasonIds[i], links[i], i+1);
 	}
 
@@ -305,13 +305,13 @@ void TestObjects::InsertTestTvShow(CObjectDatabase& db)
 	db.LinkObjectToObject(SEASON_HAS_EPISODE, season3Obj, ep5Obj, "", 5);
 	db.LinkObjectToObject(SEASON_HAS_EPISODE, season3Obj, ep6Obj, "", 6);
 
-	int studio = db.AddObject(STUDIO, "nick", "Nickelodeon");
-	db.LinkObjectToObject(TVSHOW_HAS_STUDIO, tvshowObj, studio);
+	int studio = db.AddObject(OBJ_STUDIO, "nick", "Nickelodeon");
+	db.LinkObjectToObject(VIDEO_HAS_STUDIO, tvshowObj, studio);
 
-	int aang = db.AddObject(ACTOR, "zacheisen", "Zachary Tyler Eisen");
-	int katara = db.AddObject(ACTOR, "maewhitman", "Mae Whitman");
-	int sokka = db.AddObject(ACTOR, "jackdesena", "Jack DeSena");
-	int chan = db.AddObject(ACTOR, "erikdetten", "Erik von Detten");
+	int aang = db.AddObject(OBJ_ACTOR, "zacheisen", "Zachary Tyler Eisen");
+	int katara = db.AddObject(OBJ_ACTOR, "maewhitman", "Mae Whitman");
+	int sokka = db.AddObject(OBJ_ACTOR, "jackdesena", "Jack DeSena");
+	int chan = db.AddObject(OBJ_ACTOR, "erikdetten", "Erik von Detten");
 
 	db.LinkObjectToObject(TVSHOW_HAS_ACTOR, tvshowObj, aang, "Aang");
 	db.LinkObjectToObject(TVSHOW_HAS_ACTOR, tvshowObj, katara, "Katara");
@@ -326,11 +326,11 @@ void TestObjects::InsertTestAlbum(CObjectDatabase& db)
 {
 	CLog::Log(LOGINFO, "Inserting album(s).");
 
-	int band = db.AddObject(BAND, "coldplay", "Coldplay");
-	int guy = db.AddObject(MUSICIAN, "guyb", "Guy Berryman");
-	int jonny = db.AddObject(MUSICIAN, "jonnyb", "Jonny Buckland");
-	int will = db.AddObject(MUSICIAN, "willc", "Will Champion");
-	int chris = db.AddObject(MUSICIAN, "chrism", "Chris Martin");
+	int band = db.AddObject(OBJ_BAND, "coldplay", "Coldplay");
+	int guy = db.AddObject(OBJ_MUSICIAN, "guyb", "Guy Berryman");
+	int jonny = db.AddObject(OBJ_MUSICIAN, "jonnyb", "Jonny Buckland");
+	int will = db.AddObject(OBJ_MUSICIAN, "willc", "Will Champion");
+	int chris = db.AddObject(OBJ_MUSICIAN, "chrism", "Chris Martin");
 
 	int bandMems [4] = {guy, jonny, will, chris};
 
@@ -378,7 +378,7 @@ void TestObjects::InsertTestAlbum(CObjectDatabase& db)
 
 	db.AddAttributesForObject(chris, chris_attr);
 
-	int album = db.AddObject(ALBUM, "arobtth", "A Rush of Blood to the Head");
+	int album = db.AddObject(OBJ_ALBUM, "arobtth", "A Rush of Blood to the Head");
 
 	db.LinkObjectToObject(BAND_HAS_ALBUM, band, album);
 
@@ -400,11 +400,11 @@ void TestObjects::InsertTestAlbum(CObjectDatabase& db)
 
 	db.AddAttributesForObject(album, album_attr);
 
-	int track1 = db.AddObject(SONG, "tr1", "Politik");
-	int track2 = db.AddObject(SONG, "tr2", "In My Place");
-	int track3 = db.AddObject(SONG, "tr3", "God Put a Smile Upon Your Face");
-	int track4 = db.AddObject(SONG, "tr4", "The Scientist");
-	int track5 = db.AddObject(SONG, "tr5", "Clocks");
+	int track1 = db.AddObject(OBJ_SONG, "tr1", "Politik");
+	int track2 = db.AddObject(OBJ_SONG, "tr2", "In My Place");
+	int track3 = db.AddObject(OBJ_SONG, "tr3", "God Put a Smile Upon Your Face");
+	int track4 = db.AddObject(OBJ_SONG, "tr4", "The Scientist");
+	int track5 = db.AddObject(OBJ_SONG, "tr5", "Clocks");
 
 	int tracks [5] = {track1, track2, track3, track4, track5};
 
@@ -414,7 +414,7 @@ void TestObjects::InsertTestAlbum(CObjectDatabase& db)
 
 	}
 
-	int rock = db.AddObject(GENRE, "rock", "Rock");
+	int rock = db.AddObject(OBJ_GENRE, "rock", "Rock");
 	db.LinkObjectToObject(ALBUM_HAS_GENRE, album, rock);
 
 

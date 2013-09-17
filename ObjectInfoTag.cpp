@@ -20,3 +20,8 @@ CObjectInfoTag::~CObjectInfoTag() {
 	// TODO Auto-generated destructor stub
 }
 
+bool CObjectInfoTag::IsEmpty()
+{
+	return (m_name.IsEmpty() && m_strPath.IsEmpty() && m_strFile.IsEmpty());
+}
+
