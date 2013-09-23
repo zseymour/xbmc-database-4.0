@@ -16,7 +16,6 @@
 #include <sqlite3.h>
 #include "utils/StdString.h"
 #include "utils/StringUtils.h"
-#include "TestObjects.h"
 #include <algorithm>
 
 using namespace std;
@@ -41,10 +40,10 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option)
 int main(int argc, char * argv[])
 {
 
-	if(argc==1)
+	if(argc==1 || cmdOptionExists(argv, argv+argc, "-h"))
 	{
-		cout << "Usage: " << argv[0] << " [--db /path/to/MyObject4.db]  [--xml /path/to/videodb.xml] [--query /query/url]" << endl;
-		return 1;
+		cout << "Usage: " << argv[0] << " --db /path/to/MyObject4.db  [--xml /path/to/(video|music)db.xml] [--query (video|music)db://query/url]" << endl;
+		return 0;
 	}
 	CStdString host;
 	char * dbBase = getCmdOption(argv, argv+argc, "--db");
@@ -55,7 +54,8 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		host = "/home/zachary/workspace/xbmc-database-4.0/Debug";
+		cout << "Error: --db option required.  See help (-h) for more." << endl;
+		return 1;
 	}
 	//CStdString file = "database4.db";
 	DatabaseSettings settings;
@@ -80,6 +80,19 @@ int main(int argc, char * argv[])
 		}
 
 		char * queryString = getCmdOption(argv, argv+argc, "--query");
+
+		if(queryString)
+		{
+			CStdString url(queryString);
+			CStdStringArray results;
+			db.GetObjectsByUrl(url, results);
+			cout << "Database Query: " << url << endl;
+			cout << "---------------------------------------------------------" << endl;
+			for(CStdStringArray::iterator it = results.begin(); it != results.end(); ++it)
+			{
+				cout << *it << endl;
+			}
+		}
 
 
 	}
