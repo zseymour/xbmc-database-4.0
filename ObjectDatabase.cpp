@@ -11,6 +11,9 @@
 #include "utils/URIUtils.h"
 #include "URL.h"
 #include "VideoInfoTag.h"
+#include "Artist.h"
+#include "Album.h"
+#include "Song.h"
 
 using namespace std;
 using namespace dbiplus;
@@ -455,6 +458,10 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_RECORD_LABEL, OBJ_ORGANISATION, "recordlabel", "Record Labels");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
 			"VALUES (%i, %i, '%s', '%s')", OBJ_COUNTRY, OBJ_ORGANISATION, "country", "Countries");
 	m_pDS->exec(sql.c_str());
 
@@ -472,6 +479,18 @@ void CObjectDatabase::InsertDefaults()
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
 			"VALUES (%i, %i, '%s', '%s')", OBJ_GENRE, OBJ_GROUPING, "genre", "Genres");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_MOOD, OBJ_GROUPING, "mood", "Moods");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_THEME, OBJ_GROUPING, "theme", "Themes");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_INSTRUMENT, OBJ_GROUPING, "instrument", "Instruments");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
@@ -650,6 +669,25 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+						"name, dataType, dataPrecision, inheritable) "
+						"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", DATE_OF_DEATH_STR, OBJ_PERSON, "dod",
+						"Date of Death", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", DATE_FORMED_STR, OBJ_ORGANISATION, "dateformed",
+			"Date Formed", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+						"name, dataType, dataPrecision, inheritable) "
+						"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", DATE_DISBANDED_STR, OBJ_ORGANISATION, "datedisbanded",
+						"Date Disbanded", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 				"name, dataType, dataPrecision, inheritable) "
 				"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", GROUP_DESCRIPTION_STR, OBJ_GROUPING, "description",
 				"Description", STRING_ATTRIBUTE, 0, 1);
@@ -733,12 +771,16 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-				" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_COUNTRY, OBJ_MOVIE, OBJ_COUNTRY, "movie_has_country");
-		m_pDS->exec(sql.c_str());
+			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_COUNTRY, OBJ_MOVIE, OBJ_COUNTRY, "movie_has_country");
+	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-				" VALUES (%i, %i, %i,'%s')", MOVIE_LINK_TVSHOW, OBJ_MOVIE, OBJ_TVSHOW, "movie_link_tvshow");
-		m_pDS->exec(sql.c_str());
+			" VALUES (%i, %i, %i,'%s')", MOVIE_IS_IN_MOVIESET, OBJ_MOVIE, OBJ_MOVIESET, "movie_is_in_movieset");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MOVIE_LINK_TVSHOW, OBJ_MOVIE, OBJ_TVSHOW, "movie_link_tvshow");
+	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_ACTOR, OBJ_TVSHOW, OBJ_ACTOR, "tvshow_has_actor");
@@ -748,13 +790,17 @@ void CObjectDatabase::InsertDefaults()
 			" VALUES (%i, %i, %i,'%s', 1)", TVSHOW_HAS_SEASON, OBJ_TVSHOW, OBJ_SEASON, "tvshow_has_season");
 	m_pDS->exec(sql.c_str());
 
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", TVSHOW_HAS_EPISODE, OBJ_TVSHOW, OBJ_EPISODE, "tvshow_has_episode");
+	m_pDS->exec(sql.c_str());
+
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_ACTOR, OBJ_EPISODE, OBJ_ACTOR, "episode_has_actor");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-				" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_WRITER, OBJ_EPISODE, OBJ_WRITER, "episode_has_writer");
-		m_pDS->exec(sql.c_str());
+			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_WRITER, OBJ_EPISODE, OBJ_WRITER, "episode_has_writer");
+	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", MUSICVIDEO_HAS_MUSICIAN, OBJ_MUSICVIDEO, OBJ_MUSICIAN, "musicvideo_has_musician");
@@ -765,11 +811,35 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", SONG_HAS_GENRE, OBJ_SONG, OBJ_GENRE, "song_has_genre");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_SONG, OBJ_MUSICIAN, OBJ_SONG, "musician_has_song");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_ALBUM, OBJ_MUSICIAN, OBJ_ALBUM, "musician_has_album");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_GENRE, OBJ_MUSICIAN, OBJ_GENRE, "musician_has_genre");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_STYLE, OBJ_MUSICIAN, OBJ_STYLE, "musician_has_style");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_MOOD, OBJ_MUSICIAN, OBJ_MOOD, "musician_has_mood");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_INSTRUMENT, OBJ_MUSICIAN, OBJ_INSTRUMENT, "musician_has_instrument");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICIAN_HAS_YEAR_ACTIVE, OBJ_MUSICIAN, OBJ_YEAR, "musician_has_year_active");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
@@ -789,11 +859,7 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIESET_HAS_MOVIE, OBJ_MOVIESET, OBJ_MOVIE, "movieset_has_movie");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", ALBUM_HAS_STUDIO, OBJ_ALBUM, OBJ_STUDIO, "album_has_studio");
+			" VALUES (%i, %i, %i,'%s')", ALBUM_HAS_RECORD_LABEL, OBJ_ALBUM, OBJ_RECORD_LABEL, "album_has_recordlabel");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
@@ -801,12 +867,24 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
-				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_MUSICVIDEO, OBJ_ALBUM, OBJ_MUSICVIDEO, "album_has_musicvideo");
-		m_pDS->exec(sql.c_str());
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_MUSICVIDEO, OBJ_ALBUM, OBJ_MUSICVIDEO, "album_has_musicvideo");
+	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
-				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_GENRE, OBJ_ALBUM, OBJ_GENRE, "album_has_genre");
-		m_pDS->exec(sql.c_str());
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_GENRE, OBJ_ALBUM, OBJ_GENRE, "album_has_genre");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_MOOD, OBJ_ALBUM, OBJ_MOOD, "album_has_mood");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_STYLE, OBJ_ALBUM, OBJ_STYLE, "album_has_style");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+			" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_THEME, OBJ_ALBUM, OBJ_THEME, "album_has_musicvideo");
+	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", REPO_HAS_ADDON, OBJ_REPO, OBJ_ADDON, "repo_has_addon");
@@ -3914,6 +3992,69 @@ CStdString CObjectDatabase::LoadFile(CStdString &path)
 	return content;
 }
 
+void CObjectDatabase::ImportFromXML(CStdString &path)
+{
+	ImportMusicFromXML(path);
+	ImportVideoFromXML(path);
+}
+
+void CObjectDatabase::ImportMusicFromXML(CStdString &path)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+
+		CLog::Log(LOGINFO, "Beginning music import");
+
+		CXBMCTinyXML xmlDoc;
+		CStdString xmlPath = URIUtils::AddFileToFolder(path, "musicdb.xml");
+		CStdString xml = LoadFile(xmlPath);
+		if (!xmlDoc.Parse(xml))
+			return;
+
+		TiXmlElement *root = xmlDoc.RootElement();
+		    if (!root) return;
+
+		TiXmlElement *entry = root->FirstChildElement();
+		    int current = 0;
+		    int total = 0;
+		    // first count the number of items...
+		    while (entry)
+		    {
+		      if (strnicmp(entry->Value(), "artist", 6)==0 ||
+		          strnicmp(entry->Value(), "album", 5)==0)
+		        total++;
+		      entry = entry->NextSiblingElement();
+		    }
+
+		    entry = root->FirstChildElement();
+		    while (entry)
+		    {
+		    	CStdString strTitle;
+		    	if(strnicmp(entry->Value(), "artist", 6) == 0)
+		    	{
+		    		CArtist artist;
+		    		artist.Load(entry);
+
+		    	}
+
+
+
+
+		    	entry = entry ->NextSiblingElement();
+		    }
+
+
+	}
+	catch (...)
+	{
+
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+
+	}
+}
+
 void CObjectDatabase::ImportVideoFromXML(CStdString &path)
 {
 	try
@@ -3921,7 +4062,7 @@ void CObjectDatabase::ImportVideoFromXML(CStdString &path)
 		if (NULL == m_pDB.get()) return;
 		if (NULL == m_pDS.get()) return;
 
-		CLog::Log(LOGINFO, "Beginning import");
+		CLog::Log(LOGINFO, "Beginning video import");
 
 		CXBMCTinyXML xmlDoc;
 		CStdString xmlPath = URIUtils::AddFileToFolder(path, "videodb.xml");
@@ -4009,7 +4150,7 @@ void CObjectDatabase::ImportVideoFromXML(CStdString &path)
 		    		if(info.m_strSet)
 		    		{
 		    			int idSet = AddObject(OBJ_MOVIESET, info.m_strSet, info.m_strSet);
-		    			LinkObjectToObject(MOVIESET_HAS_MOVIE, idSet, idMovie);
+		    			LinkObjectToObject(MOVIE_IS_IN_MOVIESET, idMovie, idSet);
 		    		}
 
 		    		CStdString strYear;
@@ -4139,6 +4280,8 @@ void CObjectDatabase::ImportVideoFromXML(CStdString &path)
 		    				episodeStub.AppendFormat("%d-%dx%02d", idTvShow, season, info.m_iEpisode);
 		    				int idEpisode = AddObject(OBJ_EPISODE, episodeStub, info.m_strTitle);
 		    				LinkObjectToObject(SEASON_HAS_EPISODE, idSeason, idEpisode, "", info.m_iEpisode);
+		    				//This gives a maximum of 999 episodes per season, which should be a large enough threshold
+		    				LinkObjectToObject(TVSHOW_HAS_EPISODE, idTvShow, idEpisode, "", season*1000+info.m_iEpisode);
 		    				SetAttribute(idEpisode, EPISODE_PLOT_STR, info.m_strPlot);
 		    				SetAttribute(idEpisode, EPISODE_PRODUCTIONCODE_STR, info.m_strProductionCode);
 		    				SetAttribute(idEpisode, EPISODE_SEASONSORT_NUM, info.m_iSpecialSortSeason);
@@ -4206,5 +4349,450 @@ void CObjectDatabase::ImportVideoFromXML(CStdString &path)
 	{
 		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
 	}
+}
+
+bool CObjectDatabase::GetObjectsByUrl(CStdString url, CStdStringArray& results)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		CVideoDbUrl videoUrl;
+		Filter extFilter;
+
+		if(!videoUrl.FromString(url) || !GetFilter(videoUrl, extFilter))
+		{
+			CLog::Log(LOGDEBUG, "Invalid DbUrl (%s)", url.c_str());
+			return false;
+		}
+
+
+
+		CLog::Log(LOGDEBUG, "Video URL type/itemType: %s/%s", videoUrl.GetType().c_str(), videoUrl.GetItemType().c_str());
+		CLog::Log(LOGDEBUG, "Video URL filter: %s", extFilter.where.c_str());
+
+		bool sameType = videoUrl.GetType() == videoUrl.GetItemType();
+
+		int idObjectType = UrlTypeToID(videoUrl.GetType());
+
+		if(idObjectType < -1)
+		{
+			CLog::Log(LOGDEBUG, "Invalid object type (%s)", videoUrl.GetType().c_str());
+			return false;
+		}
+
+		int idChildType = -1;
+		if(!sameType)
+		{
+			idChildType = ItemTypeToID(videoUrl.GetItemType());
+		}
+
+		if(idChildType >= 0)
+			extFilter.AppendWhere(PrepareSQL("v1.o1TypeID=%i AND v1.o2TypeID=%i", idObjectType, idChildType));
+		else
+			extFilter.AppendWhere(PrepareSQL("v1.o1TypeID=%i", idObjectType));
+
+		extFilter.AppendOrder(sameType ? "v1.o1Name" : "v1.o2Name");
+		extFilter.limit = "25";
+
+
+		CStdString strSQL = "select distinct %s from viewRelationshipsAll v1 ";
+		CStdString strSQLExtra;
+		if(!CDatabase::BuildSQL(strSQLExtra, extFilter, strSQLExtra))
+			return false;
+
+
+		strSQL= PrepareSQL(strSQL, sameType ? "v1.o1Name" : "v1.o2Name") + strSQLExtra;
+
+		CLog::Log(LOGDEBUG, "Running query (%s)", strSQL.c_str());
+
+		int rowsFound = RunQuery(strSQL);
+		CLog::Log(LOGDEBUG, "Found %i results...", rowsFound);
+
+		if(rowsFound <= 0)
+			return rowsFound == 0;
+
+
+
+		while(!m_pDS->eof())
+		{
+			results.push_back(m_pDS->fv(0).get_asString());
+			m_pDS->next();
+		}
+
+
+
+
+
+		return true;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+	return false;
+}
+
+bool CObjectDatabase::GetFilter(CVideoDbUrl &videoUrl, Filter &filter)
+{
+  if (!videoUrl.IsValid())
+    return false;
+
+  std::string type = videoUrl.GetType();
+  std::string itemType = ((const CVideoDbUrl &)videoUrl).GetItemType();
+  const CUrlOptions::UrlOptions& options = videoUrl.GetOptions();
+  CUrlOptions::UrlOptions::const_iterator option;
+
+  if (type == "movies")
+  {
+    option = options.find("genreid");
+    if (option != options.end())
+    {
+      filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_GENRE, (int)option->second.asInteger()));
+    }
+
+    option = options.find("genre");
+    if (option != options.end())
+    {
+
+      filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_GENRE, option->second.asString().c_str()));
+    }
+
+    option = options.find("countryid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", MOVIE_HAS_COUNTRY, (int)option->second.asInteger()));
+    }
+
+    option = options.find("country");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", MOVIE_HAS_COUNTRY, option->second.asString().c_str()));
+    }
+
+    option = options.find("studioid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_STUDIO, (int)option->second.asInteger()));
+    }
+
+    option = options.find("studio");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_STUDIO, option->second.asString().c_str()));
+    }
+
+    option = options.find("directorid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_DIRECTOR, (int)option->second.asInteger()));
+    }
+
+    option = options.find("director");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_DIRECTOR, option->second.asString().c_str()));
+    }
+
+    option = options.find("year");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", CONTENT_HAS_YEAR, option->second.asString().c_str()));
+    }
+
+    option = options.find("actorid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", MOVIE_HAS_ACTOR, (int)option->second.asInteger()));
+    }
+
+    option = options.find("actor");
+    if (option != options.end())
+    {
+      filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", MOVIE_HAS_ACTOR, option->second.asString().c_str()));
+    }
+
+    option = options.find("setid");
+    if (option != options.end())
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", MOVIE_IS_IN_MOVIESET, (int)option->second.asInteger()));
+
+    option = options.find("set");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", MOVIE_IS_IN_MOVIESET, option->second.asString().c_str()));
+    }
+
+    option = options.find("tagid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", OBJECT_HAS_TAG, (int)option->second.asInteger()));
+    }
+
+    option = options.find("tag");
+    if (option != options.end())
+    {
+      filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", OBJECT_HAS_TAG, option->second.asString().c_str()));
+    }
+  }
+  else if (type == "tvshows")
+  {
+	  if (itemType == "tvshows")
+	  {
+		  option = options.find("genreid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_GENRE, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("genre");
+		  if (option != options.end())
+		  {
+
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_GENRE, option->second.asString().c_str()));
+		  }
+
+		  option = options.find("studioid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_STUDIO, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("studio");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_STUDIO, option->second.asString().c_str()));
+		  }
+
+		  option = options.find("directorid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_DIRECTOR, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("director");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_DIRECTOR, option->second.asString().c_str()));
+		  }
+
+		  option = options.find("year");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", CONTENT_HAS_YEAR, option->second.asString().c_str()));
+		  }
+
+		  option = options.find("actorid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", TVSHOW_HAS_ACTOR, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("actor");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", TVSHOW_HAS_ACTOR, option->second.asString().c_str()));
+		  }
+
+		  option = options.find("tagid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", OBJECT_HAS_TAG, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("tag");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", OBJECT_HAS_TAG, option->second.asString().c_str()));
+		  }
+	  }
+	  else if (itemType == "seasons")
+	  {
+		  option = options.find("genreid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_GENRE, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("directorid");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_DIRECTOR, (int)option->second.asInteger()));
+		  }
+
+		  option = options.find("year");
+		  if (option != options.end())
+		  {
+			  filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", CONTENT_HAS_YEAR, option->second.asString().c_str()));
+		  }
+
+	  }
+    else if (itemType == "episodes")
+    {
+      int idShow = -1;
+      option = options.find("tvshowid");
+      if (false)//option != options.end())
+        idShow = (int)option->second.asInteger();
+
+      int season = -1;
+      option = options.find("season");
+      if (option != options.end())
+        season = (int)option->second.asInteger();
+
+
+      if (idShow > 0)
+      {
+        bool condition = false;
+
+        option = options.find("genreid");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_GENRE, (int)option->second.asInteger()));
+        }
+
+        option = options.find("genre");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_GENRE, option->second.asString().c_str()));
+        }
+
+        option = options.find("directorid");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_DIRECTOR, (int)option->second.asInteger()));
+        }
+
+        option = options.find("director");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_DIRECTOR, option->second.asString().c_str()));
+        }
+
+        option = options.find("year");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", CONTENT_HAS_YEAR, option->second.asString().c_str()));
+        }
+
+        option = options.find("actorid");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", EPISODE_HAS_ACTOR, (int)option->second.asInteger()));
+        }
+
+        option = options.find("actor");
+        if (option != options.end())
+        {
+          condition = true;
+          filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", EPISODE_HAS_ACTOR, option->second.asString().c_str()));
+        }
+
+
+
+        if (season > 0)
+        {
+            filter.AppendWhere(PrepareSQL("v1.o1ID=%i and v1.seqIndex=%i", idShow, season));
+        }
+      }
+      else
+      {
+        option = options.find("year");
+        if (option != options.end())
+        	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", CONTENT_HAS_YEAR, option->second.asString().c_str()));
+
+        option = options.find("directorid");
+        if (option != options.end())
+        {
+        	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_DIRECTOR, (int)option->second.asInteger()));
+        }
+
+        option = options.find("director");
+        if (option != options.end())
+        {
+        	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_DIRECTOR, option->second.asString().c_str()));
+        }
+      }
+    }
+  }
+  else if (type == "musicvideos")
+  {
+    option = options.find("genreid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_GENRE, (int)option->second.asInteger()));
+    }
+
+    option = options.find("genre");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_GENRE, option->second.asString().c_str()));
+    }
+
+    option = options.find("studioid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_STUDIO, (int)option->second.asInteger()));
+    }
+
+    option = options.find("studio");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_STUDIO, option->second.asString().c_str()));
+    }
+
+    option = options.find("directorid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", VIDEO_HAS_DIRECTOR, (int)option->second.asInteger()));
+    }
+
+    option = options.find("director");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", VIDEO_HAS_DIRECTOR, option->second.asString().c_str()));
+    }
+
+    option = options.find("year");
+    if (option != options.end())
+    	 filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", CONTENT_HAS_YEAR, option->second.asString().c_str()));
+
+    option = options.find("artistid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", MUSICVIDEO_HAS_BAND, (int)option->second.asInteger()));
+    }
+
+    option = options.find("artist");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", MUSICVIDEO_HAS_BAND, option->second.asString().c_str()));
+    }
+
+    option = options.find("albumid");
+    if (option != options.end())
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o1ID=%i", ALBUM_HAS_MUSICVIDEO, (int)option->second.asInteger()));
+
+    option = options.find("tagid");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2ID=%i", OBJECT_HAS_TAG, (int)option->second.asInteger()));
+    }
+
+    option = options.find("tag");
+    if (option != options.end())
+    {
+    	filter.AppendWhere(PrepareSQL("rtID=%i AND o2Name like '%s'", OBJECT_HAS_TAG, option->second.asString().c_str()));
+    }
+  }
+  else
+    return false;
+
+  return true;
 }
 

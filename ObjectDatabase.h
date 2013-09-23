@@ -20,6 +20,7 @@
 #include "Attribute.h"
 #include "Relationship.h"
 #include "ObjectInfoTag.h"
+#include "VideoDbUrl.h"
 
 #include <memory>
 #include <set>
@@ -56,11 +57,16 @@ enum ObjectTypeID
 	OBJ_MUSICIAN,
 	OBJ_BAND,
 	OBJ_STUDIO,
+	OBJ_RECORD_LABEL,
 	OBJ_COUNTRY,
 	OBJ_GROUPING,
 	OBJ_MOVIESET,
 	OBJ_SEASON,
 	OBJ_GENRE,
+	OBJ_STYLE,
+	OBJ_MOOD,
+	OBJ_THEME,
+	OBJ_INSTRUMENT,
 	OBJ_YEAR,
 	OBJ_ALBUM,
 	OBJ_PLAYLIST,
@@ -72,6 +78,7 @@ enum ObjectTypeID
 enum AttributeTypeID
 {
 	FILENAME_STR = 1,
+	COMMENT_STR,
 	RELEASEDATE_STR,
 	USERRATING_NUM,
 	ONLINEID_STR,
@@ -96,6 +103,9 @@ enum AttributeTypeID
 	WIDTH_NUM,
 	BIOGRAPHY_STR,
 	DATE_OF_BIRTH_STR,
+	DATE_OF_DEATH_STR,
+	DATE_FORMED_STR,
+	DATE_DISBANDED_STR,
 	GROUP_DESCRIPTION_STR,
 	ADDON_TYPE_STR,
 	ADDON_SUMMARY_STR,
@@ -117,24 +127,34 @@ enum RelationshipTypeID
 	MOVIE_HAS_ACTOR,
 	MOVIE_HAS_WRITER,
 	MOVIE_HAS_COUNTRY,
+	MOVIE_IS_IN_MOVIESET,
 	MOVIE_LINK_TVSHOW,
 	TVSHOW_HAS_ACTOR,
 	TVSHOW_HAS_SEASON,
+	TVSHOW_HAS_EPISODE,
 	EPISODE_HAS_ACTOR,
 	EPISODE_HAS_WRITER,
 	MUSICVIDEO_HAS_MUSICIAN,
 	MUSICVIDEO_HAS_BAND,
+	SONG_HAS_GENRE,
 	MUSICIAN_HAS_SONG,
 	MUSICIAN_HAS_ALBUM,
+	MUSICIAN_HAS_GENRE,
+	MUSICIAN_HAS_STYLE,
+	MUSICIAN_HAS_MOOD,
+	MUSICIAN_HAS_INSTRUMENT,
+	MUSICIAN_HAS_YEAR_ACTIVE,
 	BAND_HAS_SONG,
 	BAND_HAS_ALBUM,
 	BAND_HAS_MUSICIAN,
 	SEASON_HAS_EPISODE,
-	MOVIESET_HAS_MOVIE,
-	ALBUM_HAS_STUDIO,
 	ALBUM_HAS_SONG,
 	ALBUM_HAS_MUSICVIDEO,
 	ALBUM_HAS_GENRE,
+	ALBUM_HAS_MOOD,
+	ALBUM_HAS_STYLE,
+	ALBUM_HAS_THEME,
+	ALBUM_HAS_RECORD_LABEL,
 	REPO_HAS_ADDON
 };
 
@@ -196,6 +216,45 @@ public:
 			  return -1;
 		  }
 	  }
+
+	static int UrlTypeToID(CStdString type)
+	{
+		if(type=="movies")
+			return OBJ_MOVIE;
+		else if(type=="tvshows")
+			return OBJ_TVSHOW;
+		else if(type=="musicvideos")
+			return OBJ_MUSICVIDEO;
+		else
+			return -1;
+	}
+
+	static int ItemTypeToID(CStdString type)
+	{
+		if(type=="seasons")
+			return OBJ_SEASON;
+		else if(type=="episodes")
+			return OBJ_EPISODE;
+		else if(type=="genres")
+			return OBJ_GENRE;
+		else if(type=="actors")
+			return OBJ_ACTOR;
+		else if(type=="years")
+			return OBJ_YEAR;
+		else if(type=="studios")
+			return OBJ_STUDIO;
+		else if(type=="countries")
+			return OBJ_COUNTRY;
+		else if(type=="sets")
+			return OBJ_MOVIESET;
+		else if(type=="albums")
+			return OBJ_ALBUM;
+		else if(type=="tags")
+			return OBJ_TAG;
+		else
+			return -1;
+
+	}
 
 	int RunQuery(const CStdString &sql);
 	int RunQuery(std::auto_ptr<dbiplus::Dataset> &pDS, const CStdString &sql);
@@ -327,7 +386,11 @@ public:
 	bool HasContent(const int idObjectType);
 	int GetObjectTypeCount(const int idObjectType);
 
+	void ImportFromXML(CStdString &path);
 	void ImportVideoFromXML(CStdString &path);
+	void ImportMusicFromXML(CStdString &path);
+	bool GetObjectsByUrl(const CStdString url, CStdStringArray& results);
+	bool GetFilter(CVideoDbUrl &videoUrl, Filter &filter);
 private:
 	DatabaseSettings settings;
 	const char *GetBaseDBName() const { return "MyObject"; };
